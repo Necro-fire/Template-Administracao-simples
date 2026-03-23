@@ -40,7 +40,7 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Sonner />
+        <Sonner position="bottom-right" />
         {isAuthenticated ? <AuthenticatedApp /> : <LoginPage />}
       </TooltipProvider>
     </QueryClientProvider>

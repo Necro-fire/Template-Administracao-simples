@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PinGuard } from '@/components/PinGuard';
 import { useStore } from '@/store/useStore';
 import { useAuthStore } from '@/store/authStore';
 import { Product, Category, CATEGORIES, PIZZA_TYPES, PizzaSize } from '@/types/pizzaria';
@@ -7,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Lock, ShieldCheck, LogOut } from 'lucide-react';
+import { Plus, Pencil, Trash2, Lock } from 'lucide-react';
 
 const ICONS = ['🍕','🍔','🥤','🧃','💧','🍟','🧅','🧀','🫙','🍰','🍫','🍌','☕','🥛','🍺','🥩','🌭','🥗','➕','📦'];
 
@@ -18,18 +19,13 @@ const emptyProduct: Omit<Product, 'id'> = {
 
 export default function Produtos() {
   const { products, addProduct, updateProduct, deleteProduct } = useStore();
-  const { pinUnlocked, unlockPin, lockPin } = useAuthStore();
+  const { pinUnlocked } = useAuthStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<Omit<Product, 'id'>>(emptyProduct);
   const [filterCat, setFilterCat] = useState<Category | 'all'>('all');
   const [obsInput, setObsInput] = useState('');
 
-  // Admin PIN dialog
-  const [showPinDialog, setShowPinDialog] = useState(false);
-  const [pinInput, setPinInput] = useState('');
-
-  const isAdmin = pinUnlocked;
   const filtered = products.filter(p => filterCat === 'all' || p.category === filterCat);
   const isPizza = form.category === 'pizza';
 
@@ -46,96 +42,53 @@ export default function Produtos() {
   const handleDelete = (id: string) => { if (window.confirm('Remover este produto?')) { deleteProduct(id); toast.success('Removido'); } };
   const addObs = () => { if (!obsInput.trim()) return; setForm({ ...form, observations: [...(form.observations || []), obsInput.trim()] }); setObsInput(''); };
 
-  const handlePinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (unlockPin(pinInput)) {
-      toast.success('Modo administrador ativado');
-      setShowPinDialog(false);
-      setPinInput('');
-    } else {
-      toast.error('PIN incorreto');
-      setPinInput('');
-    }
-  };
-
-  const handleLogoutAdmin = () => {
-    lockPin();
-    toast.success('Saiu do modo administrador');
-  };
-
   return (
-    <div className="p-4 space-y-4 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Produtos</h1>
-          <p className="text-sm text-muted-foreground">
-            {isAdmin ? 'Modo administrador — gerencie seus produtos' : 'Visualização de produtos'}
-          </p>
+    <PinGuard title="Produtos">
+      <div className="p-4 space-y-4 animate-fade-in">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Produtos</h1>
+            <p className="text-sm text-muted-foreground">Gerencie seus produtos</p>
+          </div>
+          <Button onClick={openNew} className="bg-primary hover:bg-primary/90 gap-1.5 font-bold">
+            <Plus className="w-4 h-4" /> Novo Produto
+          </Button>
         </div>
-        <div className="flex items-center gap-2">
-          {isAdmin ? (
-            <>
-              <Button onClick={openNew} className="bg-primary hover:bg-primary/90 gap-1.5 font-bold">
-                <Plus className="w-4 h-4" /> Novo Produto
-              </Button>
-              <Button onClick={handleLogoutAdmin} variant="outline" className="gap-1.5 border-warning text-warning hover:bg-warning/10">
-                <LogOut className="w-4 h-4" /> Sair do Admin
-              </Button>
-            </>
-          ) : (
-            <Button onClick={() => setShowPinDialog(true)} variant="outline" className="gap-1.5">
-              <ShieldCheck className="w-4 h-4" /> Entrar como Administrador
-            </Button>
-          )}
+
+        {/* Category filters */}
+        <div className="flex gap-1.5 flex-wrap">
+          <button onClick={() => setFilterCat('all')} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filterCat === 'all' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>Todos</button>
+          {CATEGORIES.map(c => (
+            <button key={c.value} onClick={() => setFilterCat(c.value)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${filterCat === c.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
+              {c.icon} {c.label}
+            </button>
+          ))}
         </div>
-      </div>
 
-      {/* Admin badge */}
-      {isAdmin && (
-        <div className="status-badge status-open w-fit">
-          <ShieldCheck className="w-3.5 h-3.5" />
-          Administrador
-        </div>
-      )}
-
-      {/* Category filters */}
-      <div className="flex gap-1.5 flex-wrap">
-        <button onClick={() => setFilterCat('all')} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filterCat === 'all' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>Todos</button>
-        {CATEGORIES.map(c => (
-          <button key={c.value} onClick={() => setFilterCat(c.value)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${filterCat === c.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
-            {c.icon} {c.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Products grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {filtered.map(p => (
-          <div key={p.id} className="glass-card p-4 flex items-center gap-3 transition-all hover:border-primary/30">
-            <span className="text-3xl">{p.icon}</span>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm truncate">{p.name}</p>
-              <p className="text-xs text-muted-foreground capitalize">{p.category}{p.pizzaType ? ` · ${p.pizzaType}` : ''}</p>
-              {p.category === 'pizza' && p.pizzaPrices ? (
-                <div className="flex gap-2 mt-1">
-                  {(['P', 'M', 'G', 'GG'] as PizzaSize[]).map(s => (
-                    <span key={s} className="text-[10px] text-muted-foreground">
-                      <span className="font-bold text-foreground">{s}</span> {formatCurrency(p.pizzaPrices![s])}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-primary font-bold mt-0.5">{formatCurrency(p.price)}</p>
-              )}
-              {isAdmin && (
+        {/* Products grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {filtered.map(p => (
+            <div key={p.id} className="glass-card p-4 flex items-center gap-3 transition-all hover:border-primary/30">
+              <span className="text-3xl">{p.icon}</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm truncate">{p.name}</p>
+                <p className="text-xs text-muted-foreground capitalize">{p.category}{p.pizzaType ? ` · ${p.pizzaType}` : ''}</p>
+                {p.category === 'pizza' && p.pizzaPrices ? (
+                  <div className="flex gap-2 mt-1">
+                    {(['P', 'M', 'G', 'GG'] as PizzaSize[]).map(s => (
+                      <span key={s} className="text-[10px] text-muted-foreground">
+                        <span className="font-bold text-foreground">{s}</span> {formatCurrency(p.pizzaPrices![s])}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-primary font-bold mt-0.5">{formatCurrency(p.price)}</p>
+                )}
                 <p className="text-[10px] text-destructive flex items-center gap-1 mt-0.5">
                   <Lock className="w-2.5 h-2.5" />
                   Custo: {p.category === 'pizza' && p.pizzaCosts ? formatCurrency(p.pizzaCosts.G) : formatCurrency(p.cost)}
                 </p>
-              )}
-            </div>
-            {isAdmin && (
+              </div>
               <div className="flex gap-1">
                 <button onClick={() => openEdit(p)} className="p-2 rounded-lg bg-secondary hover:bg-accent transition-colors">
                   <Pencil className="w-3.5 h-3.5" />
@@ -144,39 +97,12 @@ export default function Produtos() {
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
-            )}
-          </div>
-        ))}
-        {filtered.length === 0 && <p className="col-span-full text-muted-foreground text-center py-12">Nenhum produto encontrado</p>}
-      </div>
+            </div>
+          ))}
+          {filtered.length === 0 && <p className="col-span-full text-muted-foreground text-center py-12">Nenhum produto encontrado</p>}
+        </div>
 
-      {/* PIN Dialog */}
-      <Dialog open={showPinDialog} onOpenChange={setShowPinDialog}>
-        <DialogContent className="bg-card border-border max-w-xs">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 justify-center">
-              <ShieldCheck className="w-5 h-5 text-primary" /> Acesso Administrador
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handlePinSubmit} className="space-y-4">
-            <p className="text-sm text-muted-foreground text-center">Digite o PIN para gerenciar produtos</p>
-            <Input
-              type="password"
-              value={pinInput}
-              onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="••••"
-              className="bg-secondary border-border text-center text-lg tracking-widest"
-              autoFocus
-            />
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 font-bold">
-              Entrar
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Product Edit Dialog - only for admin */}
-      {isAdmin && (
+        {/* Product Edit Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="bg-card border-border max-w-md max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editing ? 'Editar' : 'Novo'} Produto</DialogTitle></DialogHeader>
@@ -255,7 +181,7 @@ export default function Produtos() {
             </div>
           </DialogContent>
         </Dialog>
-      )}
-    </div>
+      </div>
+    </PinGuard>
   );
 }
