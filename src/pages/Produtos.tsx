@@ -50,7 +50,8 @@ export default function Produtos() {
     setDialogOpen(false);
   };
 
-  const handleDelete = (id: string) => { if (window.confirm('Remover este produto?')) { deleteProduct(id); toast.success('Removido'); } };
+  const handleDelete = (id: string) => { setDeleteConfirm(id); };
+  const confirmDelete = () => { if (deleteConfirm) { deleteProduct(deleteConfirm); toast.success('Removido'); setDeleteConfirm(null); } };
   const addObs = () => { if (!obsInput.trim()) return; setForm({ ...form, observations: [...(form.observations || []), obsInput.trim()] }); setObsInput(''); };
 
   return (
