@@ -231,7 +231,7 @@ export function Cart() {
                     </button>
                   ))}
                 </div>
-                {splitMode && (
+                {splitMode && currentMethod && (
                   <div className="flex gap-2">
                     <Input
                       type="number"
