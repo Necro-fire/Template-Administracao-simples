@@ -81,9 +81,7 @@ export function Cart() {
     setCustomerContact('');
     toast.success('Venda finalizada!');
 
-    if (window.confirm('Deseja gerar a nota?')) {
-      setShowReceipt(true);
-    }
+    setShowReceiptConfirm(true);
   };
 
   const addObservation = (itemId: string) => {
