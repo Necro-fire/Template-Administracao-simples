@@ -42,10 +42,8 @@ export function TopNav() {
   // Navigation confirmation alert
   const [navAlert, setNavAlert] = useState<{ to: string } | null>(null);
 
-  const hasUnsavedChanges = cart.length > 0;
-
   const handleNavClick = (to: string, e: React.MouseEvent) => {
-    if (pathname !== to && hasUnsavedChanges) {
+    if (pathname === '/' && to !== '/' && cart.length > 0) {
       e.preventDefault();
       setNavAlert({ to });
     }
@@ -142,7 +140,7 @@ export function TopNav() {
           <AlertDialogHeader>
             <AlertDialogTitle>Mudar de página?</AlertDialogTitle>
             <AlertDialogDescription>
-              Você está prestes a sair desta página. Dados não salvos podem ser perdidos.
+              Você tem itens no carrinho. Ao sair do PDV, o carrinho será perdido. Deseja continuar?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
