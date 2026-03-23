@@ -223,7 +223,7 @@ export function Cart() {
                         if (!splitMode) payFull(pm.method);
                       }}
                       className={`flex items-center justify-center gap-1 py-2 rounded text-xs font-medium transition-colors ${
-                        currentMethod === pm.method ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
+                        currentMethod === pm.method ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-accent'
                       }`}
                     >
                       <span>{pm.icon}</span>
