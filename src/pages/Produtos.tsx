@@ -7,6 +7,16 @@ import { formatCurrency } from '@/lib/format';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, Lock } from 'lucide-react';
 
@@ -25,6 +35,7 @@ export default function Produtos() {
   const [form, setForm] = useState<Omit<Product, 'id'>>(emptyProduct);
   const [filterCat, setFilterCat] = useState<Category | 'all'>('all');
   const [obsInput, setObsInput] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const filtered = products.filter(p => filterCat === 'all' || p.category === filterCat);
   const isPizza = form.category === 'pizza';
@@ -39,7 +50,8 @@ export default function Produtos() {
     setDialogOpen(false);
   };
 
-  const handleDelete = (id: string) => { if (window.confirm('Remover este produto?')) { deleteProduct(id); toast.success('Removido'); } };
+  const handleDelete = (id: string) => { setDeleteConfirm(id); };
+  const confirmDelete = () => { if (deleteConfirm) { deleteProduct(deleteConfirm); toast.success('Removido'); setDeleteConfirm(null); } };
   const addObs = () => { if (!obsInput.trim()) return; setForm({ ...form, observations: [...(form.observations || []), obsInput.trim()] }); setObsInput(''); };
 
   return (
@@ -182,6 +194,19 @@ export default function Produtos() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <AlertDialogContent className="bg-card border-border max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover produto?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita. O produto será removido permanentemente.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PinGuard>
   );
 }

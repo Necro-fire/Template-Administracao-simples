@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { maskCNPJ } from '@/lib/format';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -68,8 +69,7 @@ export function LoginPage() {
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Senha</label>
-              <Input
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
@@ -95,8 +95,8 @@ export function LoginPage() {
             <p className="text-sm text-muted-foreground">Informe seu PIN para recuperar a senha:</p>
             <Input
               value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="PIN"
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder="PIN (4 dígitos)"
               className="bg-secondary border-border"
             />
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90 font-bold">
@@ -117,8 +117,7 @@ export function LoginPage() {
               placeholder="CNPJ"
               className="bg-secondary border-border"
             />
-            <Input
-              type="password"
+            <PasswordInput
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Senha"

@@ -6,12 +6,22 @@ import { useStore } from '@/store/useStore';
 import { PaymentMethod, PAYMENT_METHODS, PaymentSplit } from '@/types/pizzaria';
 import { formatCurrency } from '@/lib/format';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 
 export function Cart() {
   const { cart, removeFromCart, updateCartItem, clearCart, finalizeSale, cashRegister } = useStore();
   const [showPayment, setShowPayment] = useState(false);
   const [payments, setPayments] = useState<PaymentSplit[]>([]);
-  const [currentMethod, setCurrentMethod] = useState<PaymentMethod>('dinheiro');
+  const [currentMethod, setCurrentMethod] = useState<PaymentMethod | null>(null);
   const [currentAmount, setCurrentAmount] = useState('');
   const [splitMode, setSplitMode] = useState(false);
   const [customerName, setCustomerName] = useState('');
@@ -20,6 +30,7 @@ export function Cart() {
   const [editingObsId, setEditingObsId] = useState<string | null>(null);
   const [lastSale, setLastSale] = useState<any>(null);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [showReceiptConfirm, setShowReceiptConfirm] = useState(false);
 
   const total = cart.reduce((s, i) => s + i.calculatedPrice * i.quantity, 0);
   const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
@@ -32,7 +43,7 @@ export function Cart() {
       toast.error('Valor inválido');
       return;
     }
-    setPayments([...payments, { method: currentMethod, amount }]);
+    setPayments([...payments, { method: currentMethod!, amount }]);
     setCurrentAmount('');
   };
 
@@ -65,13 +76,12 @@ export function Cart() {
     setPayments([]);
     setShowPayment(false);
     setSplitMode(false);
+    setCurrentMethod(null);
     setCustomerName('');
     setCustomerContact('');
     toast.success('Venda finalizada!');
 
-    if (window.confirm('Deseja gerar a nota?')) {
-      setShowReceipt(true);
-    }
+    setShowReceiptConfirm(true);
   };
 
   const addObservation = (itemId: string) => {
@@ -109,6 +119,7 @@ export function Cart() {
   }
 
   return (
+    <>
     <div className="w-80 glass-card flex flex-col shrink-0 animate-slide-in-right">
       <div className="p-3 border-b border-border">
         <h2 className="font-bold text-sm">Carrinho ({cart.reduce((s, i) => s + i.quantity, 0)} itens)</h2>
@@ -223,7 +234,7 @@ export function Cart() {
                         if (!splitMode) payFull(pm.method);
                       }}
                       className={`flex items-center justify-center gap-1 py-2 rounded text-xs font-medium transition-colors ${
-                        currentMethod === pm.method ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
+                        currentMethod === pm.method ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-accent'
                       }`}
                     >
                       <span>{pm.icon}</span>
@@ -231,7 +242,7 @@ export function Cart() {
                     </button>
                   ))}
                 </div>
-                {splitMode && (
+                {splitMode && currentMethod && (
                   <div className="flex gap-2">
                     <Input
                       type="number"
@@ -261,7 +272,7 @@ export function Cart() {
               >
                 Finalizar Venda
               </Button>
-              <Button onClick={() => { setShowPayment(false); setPayments([]); setSplitMode(false); }} variant="outline" size="sm">
+              <Button onClick={() => { setShowPayment(false); setPayments([]); setSplitMode(false); setCurrentMethod(null); }} variant="outline" size="sm">
                 Voltar
               </Button>
             </div>
@@ -269,5 +280,19 @@ export function Cart() {
         )}
       </div>
     </div>
+
+    <AlertDialog open={showReceiptConfirm} onOpenChange={setShowReceiptConfirm}>
+      <AlertDialogContent className="bg-card border-border max-w-sm">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Gerar nota?</AlertDialogTitle>
+          <AlertDialogDescription>Deseja gerar a nota desta venda?</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="border-border" onClick={() => setShowReceiptConfirm(false)}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction className="bg-primary hover:bg-primary/90" onClick={() => { setShowReceipt(true); setShowReceiptConfirm(false); }}>Gerar Nota</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
