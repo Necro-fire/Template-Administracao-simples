@@ -42,8 +42,10 @@ export function TopNav() {
   // Navigation confirmation alert
   const [navAlert, setNavAlert] = useState<{ to: string } | null>(null);
 
+  const hasUnsavedChanges = cart.length > 0;
+
   const handleNavClick = (to: string, e: React.MouseEvent) => {
-    if (pathname !== to) {
+    if (pathname !== to && hasUnsavedChanges) {
       e.preventDefault();
       setNavAlert({ to });
     }
