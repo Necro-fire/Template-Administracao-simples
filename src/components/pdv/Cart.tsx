@@ -119,6 +119,7 @@ export function Cart() {
   }
 
   return (
+    <>
     <div className="w-80 glass-card flex flex-col shrink-0 animate-slide-in-right">
       <div className="p-3 border-b border-border">
         <h2 className="font-bold text-sm">Carrinho ({cart.reduce((s, i) => s + i.quantity, 0)} itens)</h2>
