@@ -1,50 +1,58 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product, CartItem, Sale, CashRegister, CashMovement, UserRole, PaymentSplit, AuditLog, MovementType } from '@/types/pizzaria';
+import { Product, CartItem, Sale, CashRegister, CashMovement, PaymentSplit, AuditLog } from '@/types/pizzaria';
 
 const DEMO_PRODUCTS: Product[] = [
-  { id: '1', name: 'Pizza Margherita', category: 'pizza', image: '🍕', price: 39.90, cost: 12.00, active: true },
-  { id: '2', name: 'Pizza Calabresa', category: 'pizza', image: '🍕', price: 42.90, cost: 14.00, active: true },
-  { id: '3', name: 'Pizza 4 Queijos', category: 'pizza', image: '🍕', price: 45.90, cost: 16.00, active: true },
-  { id: '4', name: 'Pizza Portuguesa', category: 'pizza', image: '🍕', price: 44.90, cost: 15.00, active: true },
-  { id: '5', name: 'Pizza Frango c/ Catupiry', category: 'pizza', image: '🍕', price: 43.90, cost: 14.50, active: true },
-  { id: '6', name: 'Pizza Pepperoni', category: 'pizza', image: '🍕', price: 46.90, cost: 16.50, active: true },
-  { id: '7', name: 'Coca-Cola 2L', category: 'bebidas', image: '🥤', price: 12.00, cost: 6.00, active: true },
-  { id: '8', name: 'Guaraná 2L', category: 'bebidas', image: '🥤', price: 10.00, cost: 5.00, active: true },
-  { id: '9', name: 'Suco Natural', category: 'bebidas', image: '🧃', price: 8.00, cost: 3.00, active: true },
-  { id: '10', name: 'Água Mineral', category: 'bebidas', image: '💧', price: 4.00, cost: 1.50, active: true },
-  { id: '11', name: 'Borda Recheada', category: 'outros', image: '🧀', price: 8.00, cost: 3.00, active: true },
-  { id: '12', name: 'Molho Extra', category: 'outros', image: '🫙', price: 3.00, cost: 0.80, active: true },
+  // Pizzas - Tradicional
+  { id: 'p1', name: 'Calabresa', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, pizzaType: 'tradicional', pizzaPrices: { P: 25, M: 35, G: 45, GG: 55 }, pizzaCosts: { P: 8, M: 12, G: 16, GG: 20 } },
+  { id: 'p2', name: 'Margherita', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, pizzaType: 'tradicional', pizzaPrices: { P: 25, M: 35, G: 45, GG: 55 }, pizzaCosts: { P: 8, M: 12, G: 16, GG: 20 } },
+  { id: 'p3', name: 'Mussarela', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, pizzaType: 'tradicional', pizzaPrices: { P: 22, M: 32, G: 42, GG: 52 }, pizzaCosts: { P: 7, M: 10, G: 14, GG: 18 } },
+  { id: 'p4', name: 'Portuguesa', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, pizzaType: 'tradicional', pizzaPrices: { P: 28, M: 38, G: 48, GG: 58 }, pizzaCosts: { P: 9, M: 13, G: 17, GG: 21 } },
+  // Pizzas - Especial 1
+  { id: 'p5', name: '4 Queijos', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, pizzaType: 'especial1', pizzaPrices: { P: 30, M: 42, G: 52, GG: 62 }, pizzaCosts: { P: 10, M: 15, G: 19, GG: 23 } },
+  { id: 'p6', name: 'Frango c/ Catupiry', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, pizzaType: 'especial1', pizzaPrices: { P: 30, M: 42, G: 52, GG: 62 }, pizzaCosts: { P: 10, M: 15, G: 19, GG: 23 } },
+  // Pizzas - Especial 2
+  { id: 'p7', name: 'Camarão', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, pizzaType: 'especial2', pizzaPrices: { P: 35, M: 48, G: 60, GG: 72 }, pizzaCosts: { P: 14, M: 20, G: 26, GG: 32 } },
+  { id: 'p8', name: 'Lombo Canadense', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, pizzaType: 'especial2', pizzaPrices: { P: 33, M: 45, G: 57, GG: 68 }, pizzaCosts: { P: 12, M: 18, G: 24, GG: 30 } },
+  // Pizzas - Doce
+  { id: 'p9', name: 'Chocolate', category: 'pizza', icon: '🍫', price: 0, cost: 0, active: true, pizzaType: 'doce', pizzaPrices: { P: 28, M: 38, G: 48, GG: 58 }, pizzaCosts: { P: 9, M: 13, G: 17, GG: 21 } },
+  { id: 'p10', name: 'Banana c/ Canela', category: 'pizza', icon: '🍌', price: 0, cost: 0, active: true, pizzaType: 'doce', pizzaPrices: { P: 26, M: 36, G: 46, GG: 56 }, pizzaCosts: { P: 8, M: 12, G: 16, GG: 20 } },
+  // Hambúrgueres
+  { id: 'h1', name: 'X-Burger', category: 'hamburguer', icon: '🍔', price: 22, cost: 10, active: true },
+  { id: 'h2', name: 'X-Bacon', category: 'hamburguer', icon: '🍔', price: 28, cost: 13, active: true },
+  { id: 'h3', name: 'X-Tudo', category: 'hamburguer', icon: '🍔', price: 32, cost: 15, active: true },
+  // Bebidas
+  { id: 'b1', name: 'Coca-Cola 2L', category: 'bebida', icon: '🥤', price: 12, cost: 6, active: true },
+  { id: 'b2', name: 'Guaraná 2L', category: 'bebida', icon: '🥤', price: 10, cost: 5, active: true },
+  { id: 'b3', name: 'Suco Natural', category: 'bebida', icon: '🧃', price: 8, cost: 3, active: true },
+  { id: 'b4', name: 'Água Mineral', category: 'bebida', icon: '💧', price: 4, cost: 1.5, active: true },
+  // Porções
+  { id: 'po1', name: 'Batata Frita', category: 'porcao', icon: '🍟', price: 18, cost: 6, active: true },
+  { id: 'po2', name: 'Onion Rings', category: 'porcao', icon: '🧅', price: 20, cost: 7, active: true },
+  // Extras
+  { id: 'e1', name: 'Borda Recheada', category: 'extras', icon: '🧀', price: 8, cost: 3, active: true },
+  { id: 'e2', name: 'Molho Extra', category: 'extras', icon: '🫙', price: 3, cost: 0.8, active: true },
+  // Outros
+  { id: 'o1', name: 'Sobremesa do Dia', category: 'outros', icon: '🍰', price: 15, cost: 5, active: true },
 ];
 
 interface AppState {
-  // Auth
-  userRole: UserRole;
-  pinUnlocked: boolean;
-  adminPin: string;
-  setUserRole: (role: UserRole) => void;
-  unlockPin: (pin: string) => boolean;
-  lockPin: () => void;
-  setAdminPin: (pin: string) => void;
-
-  // Products
   products: Product[];
   addProduct: (p: Product) => void;
   updateProduct: (p: Product) => void;
   deleteProduct: (id: string) => void;
 
-  // Cart
   cart: CartItem[];
-  addToCart: (product: Product) => void;
-  removeFromCart: (productId: string) => void;
-  updateCartQty: (productId: string, qty: number) => void;
+  addToCart: (item: CartItem) => void;
+  removeFromCart: (itemId: string) => void;
+  updateCartItem: (itemId: string, updates: Partial<CartItem>) => void;
   clearCart: () => void;
 
-  // Sales
   sales: Sale[];
-  finalizeSale: (payments: PaymentSplit[], change: number) => void;
+  nextSaleCode: number;
+  finalizeSale: (payments: PaymentSplit[], change: number, customerName: string, customerContact: string, observations: string[]) => Sale;
+  cancelSale: (saleId: string) => void;
 
-  // Cash register
   cashRegister: CashRegister | null;
   cashHistory: CashRegister[];
   openRegister: (initialAmount: number) => void;
@@ -52,7 +60,6 @@ interface AppState {
   addMovement: (m: Omit<CashMovement, 'id' | 'date'>) => void;
   deleteMovement: (movementId: string) => void;
 
-  // Audit logs
   auditLogs: AuditLog[];
   addAuditLog: (action: string, details: string) => void;
 }
@@ -60,22 +67,6 @@ interface AppState {
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
-      userRole: 'admin',
-      pinUnlocked: false,
-      adminPin: '1234',
-      setUserRole: (role) => set({ userRole: role, pinUnlocked: false }),
-      unlockPin: (pin) => {
-        if (pin === get().adminPin) {
-          set({ pinUnlocked: true });
-          get().addAuditLog('PIN_UNLOCK', 'PIN administrativo desbloqueado');
-          return true;
-        }
-        get().addAuditLog('PIN_FAIL', 'Tentativa de PIN incorreto');
-        return false;
-      },
-      lockPin: () => set({ pinUnlocked: false }),
-      setAdminPin: (pin) => set({ adminPin: pin }),
-
       products: DEMO_PRODUCTS,
       addProduct: (p) => {
         set((s) => ({ products: [...s.products, p] }));
@@ -92,40 +83,55 @@ export const useStore = create<AppState>()(
       },
 
       cart: [],
-      addToCart: (product) =>
-        set((s) => {
-          const existing = s.cart.find((i) => i.product.id === product.id);
-          if (existing) {
-            return { cart: s.cart.map((i) => (i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i)) };
-          }
-          return { cart: [...s.cart, { product, quantity: 1 }] };
-        }),
-      removeFromCart: (productId) => set((s) => ({ cart: s.cart.filter((i) => i.product.id !== productId) })),
-      updateCartQty: (productId, qty) =>
-        set((s) => {
-          if (qty <= 0) return { cart: s.cart.filter((i) => i.product.id !== productId) };
-          return { cart: s.cart.map((i) => (i.product.id === productId ? { ...i, quantity: qty } : i)) };
-        }),
+      addToCart: (item) => set((s) => ({ cart: [...s.cart, item] })),
+      removeFromCart: (itemId) => set((s) => ({ cart: s.cart.filter((i) => i.id !== itemId) })),
+      updateCartItem: (itemId, updates) =>
+        set((s) => ({
+          cart: s.cart.map((i) => (i.id === itemId ? { ...i, ...updates } : i)),
+        })),
       clearCart: () => set({ cart: [] }),
 
       sales: [],
-      finalizeSale: (payments, change) =>
+      nextSaleCode: 1,
+      finalizeSale: (payments, change, customerName, customerContact, observations) => {
+        const state = get();
+        const total = state.cart.reduce((sum, i) => sum + i.calculatedPrice * i.quantity, 0);
+        const sale: Sale = {
+          id: crypto.randomUUID(),
+          code: String(state.nextSaleCode).padStart(6, '0'),
+          items: [...state.cart],
+          payments,
+          total,
+          change,
+          date: new Date().toISOString(),
+          customerName,
+          customerContact,
+          observations,
+          cancelled: false,
+        };
+        const reg = state.cashRegister;
+        set({
+          sales: [...state.sales, sale],
+          nextSaleCode: state.nextSaleCode + 1,
+          cart: [],
+          cashRegister: reg && !reg.closedAt ? { ...reg, sales: [...reg.sales, sale] } : reg,
+        });
+        get().addAuditLog('SALE', `Venda ${sale.code} - Total: R$ ${total.toFixed(2)}`);
+        return sale;
+      },
+      cancelSale: (saleId) =>
         set((s) => {
-          const total = s.cart.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
-          const sale: Sale = {
-            id: crypto.randomUUID(),
-            items: [...s.cart],
-            payments,
-            total,
-            change,
-            date: new Date().toISOString(),
-          };
+          const sale = s.sales.find(sl => sl.id === saleId);
+          if (!sale || sale.cancelled) return {};
+          const updatedSale = { ...sale, cancelled: true, cancelledAt: new Date().toISOString() };
+          const updatedSales = s.sales.map(sl => sl.id === saleId ? updatedSale : sl);
           const reg = s.cashRegister;
-          return {
-            sales: [...s.sales, sale],
-            cart: [],
-            cashRegister: reg ? { ...reg, sales: [...reg.sales, sale] } : reg,
-          };
+          const updatedReg = reg ? {
+            ...reg,
+            sales: reg.sales.map(sl => sl.id === saleId ? updatedSale : sl),
+          } : reg;
+          get().addAuditLog('SALE_CANCEL', `Venda ${sale.code} cancelada`);
+          return { sales: updatedSales, cashRegister: updatedReg };
         }),
 
       cashRegister: null,
@@ -141,36 +147,32 @@ export const useStore = create<AppState>()(
             exits: [],
           },
         });
-        get().addAuditLog('REGISTER_OPEN', `Caixa aberto com saldo inicial: R$ ${initialAmount.toFixed(2)}`);
+        get().addAuditLog('REGISTER_OPEN', `Caixa aberto com R$ ${initialAmount.toFixed(2)}`);
       },
       closeRegister: (informedAmount) =>
         set((s) => {
           if (!s.cashRegister) return {};
-          const closed = {
-            ...s.cashRegister,
-            closedAt: new Date().toISOString(),
-            informedAmount,
-          };
-          get().addAuditLog('REGISTER_CLOSE', `Caixa fechado. Valor informado: R$ ${informedAmount?.toFixed(2) || 'N/A'}`);
-          return {
-            cashRegister: closed,
-            cashHistory: [...s.cashHistory, closed],
-          };
+          const closed = { ...s.cashRegister, closedAt: new Date().toISOString(), informedAmount };
+          get().addAuditLog('REGISTER_CLOSE', `Caixa fechado`);
+          return { cashRegister: null, cashHistory: [...s.cashHistory, closed] };
         }),
       addMovement: (m) =>
         set((s) => {
           if (!s.cashRegister) return {};
           const movement: CashMovement = { ...m, id: crypto.randomUUID(), date: new Date().toISOString() };
           const isEntry = m.type === 'entry' || m.type === 'reforco';
-          if (isEntry) {
-            return { cashRegister: { ...s.cashRegister, entries: [...s.cashRegister.entries, movement] } };
-          }
-          return { cashRegister: { ...s.cashRegister, exits: [...s.cashRegister.exits, movement] } };
+          return {
+            cashRegister: {
+              ...s.cashRegister,
+              entries: isEntry ? [...s.cashRegister.entries, movement] : s.cashRegister.entries,
+              exits: !isEntry ? [...s.cashRegister.exits, movement] : s.cashRegister.exits,
+            },
+          };
         }),
       deleteMovement: (movementId) =>
         set((s) => {
           if (!s.cashRegister) return {};
-          get().addAuditLog('MOVEMENT_DELETE', `Movimentação removida: ${movementId.slice(0, 8)}`);
+          get().addAuditLog('MOVEMENT_DELETE', `Movimentação removida`);
           return {
             cashRegister: {
               ...s.cashRegister,
@@ -184,17 +186,11 @@ export const useStore = create<AppState>()(
       addAuditLog: (action, details) =>
         set((s) => ({
           auditLogs: [
-            {
-              id: crypto.randomUUID(),
-              action,
-              details,
-              user: s.userRole,
-              date: new Date().toISOString(),
-            },
+            { id: crypto.randomUUID(), action, details, user: 'system', date: new Date().toISOString() },
             ...s.auditLogs,
           ].slice(0, 500),
         })),
     }),
-    { name: 'pizzaria-store' }
+    { name: 'bella-pizza-store' }
   )
 );
