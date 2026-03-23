@@ -32,7 +32,7 @@ export function Cart() {
       toast.error('Valor inválido');
       return;
     }
-    setPayments([...payments, { method: currentMethod, amount }]);
+    setPayments([...payments, { method: currentMethod!, amount }]);
     setCurrentAmount('');
   };
 
