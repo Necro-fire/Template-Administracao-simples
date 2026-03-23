@@ -288,8 +288,8 @@ export function Cart() {
           <AlertDialogDescription>Deseja gerar a nota desta venda?</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="border-border" onClick={() => setShowReceiptConfirm(false)}>Cancelar</AlertDialogCancel>
-          <AlertDialogAction className="bg-primary hover:bg-primary/90" onClick={() => { setShowReceipt(true); setShowReceiptConfirm(false); }}>Gerar Nota</AlertDialogAction>
+          <AlertDialogCancel onClick={() => setShowReceiptConfirm(false)}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={() => { setShowReceipt(true); setShowReceiptConfirm(false); }}>Gerar Nota</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
