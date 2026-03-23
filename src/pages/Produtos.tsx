@@ -35,6 +35,7 @@ export default function Produtos() {
   const [form, setForm] = useState<Omit<Product, 'id'>>(emptyProduct);
   const [filterCat, setFilterCat] = useState<Category | 'all'>('all');
   const [obsInput, setObsInput] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const filtered = products.filter(p => filterCat === 'all' || p.category === filterCat);
   const isPizza = form.category === 'pizza';
