@@ -262,7 +262,7 @@ export function Cart() {
               >
                 Finalizar Venda
               </Button>
-              <Button onClick={() => { setShowPayment(false); setPayments([]); setSplitMode(false); }} variant="outline" size="sm">
+              <Button onClick={() => { setShowPayment(false); setPayments([]); setSplitMode(false); setCurrentMethod(null); }} variant="outline" size="sm">
                 Voltar
               </Button>
             </div>
