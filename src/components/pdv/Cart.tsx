@@ -6,6 +6,16 @@ import { useStore } from '@/store/useStore';
 import { PaymentMethod, PAYMENT_METHODS, PaymentSplit } from '@/types/pizzaria';
 import { formatCurrency } from '@/lib/format';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 
 export function Cart() {
   const { cart, removeFromCart, updateCartItem, clearCart, finalizeSale, cashRegister } = useStore();
