@@ -11,7 +11,7 @@ export function Cart() {
   const { cart, removeFromCart, updateCartItem, clearCart, finalizeSale, cashRegister } = useStore();
   const [showPayment, setShowPayment] = useState(false);
   const [payments, setPayments] = useState<PaymentSplit[]>([]);
-  const [currentMethod, setCurrentMethod] = useState<PaymentMethod>('dinheiro');
+  const [currentMethod, setCurrentMethod] = useState<PaymentMethod | null>(null);
   const [currentAmount, setCurrentAmount] = useState('');
   const [splitMode, setSplitMode] = useState(false);
   const [customerName, setCustomerName] = useState('');

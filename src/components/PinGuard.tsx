@@ -12,7 +12,7 @@ export function PinGuard({ children, title = 'Área Protegida' }: PinGuardProps)
   const { pinUnlocked, unlockPin } = useAuthStore();
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
-  const MAX_PIN = 6;
+  const MAX_PIN = 4;
 
   const addDigit = useCallback((digit: string) => {
     setError(false);
@@ -35,7 +35,6 @@ export function PinGuard({ children, title = 'Área Protegida' }: PinGuardProps)
     }
   }, [pin, unlockPin]);
 
-  // Physical keyboard support
   useEffect(() => {
     if (pinUnlocked) return;
     const handler = (e: KeyboardEvent) => {
@@ -58,7 +57,6 @@ export function PinGuard({ children, title = 'Área Protegida' }: PinGuardProps)
         <h2 className="font-bold text-lg mb-1">{title}</h2>
         <p className="text-sm text-muted-foreground mb-6">Digite o PIN para acessar</p>
 
-        {/* PIN dots */}
         <div className="flex justify-center gap-2.5 mb-6">
           {Array.from({ length: MAX_PIN }).map((_, i) => (
             <div
@@ -76,7 +74,6 @@ export function PinGuard({ children, title = 'Área Protegida' }: PinGuardProps)
           <p className="text-xs text-destructive mb-3 animate-fade-in">PIN incorreto, tente novamente</p>
         )}
 
-        {/* Keypad */}
         <div className="grid grid-cols-3 gap-2">
           {keys.map(k => (
             <button

@@ -1,12 +1,23 @@
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutDashboard, Package, Wallet, Receipt, Lock, Unlock, LogOut, Settings } from 'lucide-react';
+import { ShoppingCart, LayoutDashboard, Package, Wallet, Receipt, Unlock, LogOut, Settings } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useStore } from '@/store/useStore';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 
 const links = [
   { to: '/', label: 'PDV', icon: ShoppingCart },
@@ -19,7 +30,7 @@ const links = [
 export function TopNav() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { pinUnlocked, lockPin, logout, companyName, changePassword, changePin } = useAuthStore();
+  const { pinUnlocked, lockPin, logout, companyName, password, pin, changePassword, changePin } = useAuthStore();
   const { cashRegister, cart } = useStore();
   const isRegisterOpen = cashRegister && !cashRegister.closedAt;
   const [showSettings, setShowSettings] = useState(false);
@@ -28,12 +39,20 @@ export function TopNav() {
   const [settingsPassword, setSettingsPassword] = useState('');
   const [newValue, setNewValue] = useState('');
 
+  // Navigation confirmation alert
+  const [navAlert, setNavAlert] = useState<{ to: string } | null>(null);
+
   const handleNavClick = (to: string, e: React.MouseEvent) => {
-    if (pathname === '/' && to !== '/' && cart.length > 0) {
+    if (pathname !== to) {
       e.preventDefault();
-      if (window.confirm('Você tem itens no carrinho. Ao sair do PDV o carrinho será perdido. Deseja continuar?')) {
-        navigate(to);
-      }
+      setNavAlert({ to });
+    }
+  };
+
+  const confirmNav = () => {
+    if (navAlert) {
+      navigate(navAlert.to);
+      setNavAlert(null);
     }
   };
 
@@ -49,6 +68,10 @@ export function TopNav() {
   };
 
   const handleChangePin = () => {
+    if (newValue.length !== 4) {
+      toast.error('O PIN deve ter exatamente 4 dígitos');
+      return;
+    }
     if (changePin(settingsPassword, newValue)) {
       toast.success('PIN alterado!');
       setShowSettings(false);
@@ -111,32 +134,53 @@ export function TopNav() {
         </div>
       </nav>
 
+      {/* Navigation confirmation alert */}
+      <AlertDialog open={!!navAlert} onOpenChange={(open) => !open && setNavAlert(null)}>
+        <AlertDialogContent className="bg-card border-border max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mudar de página?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a sair desta página. Dados não salvos podem ser perdidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmNav} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Settings dialog */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent className="bg-card border-border max-w-sm">
           <DialogHeader>
             <DialogTitle>Configurações</DialogTitle>
           </DialogHeader>
           <div className="flex gap-2 mb-4">
-            <Button size="sm" variant={settingsTab === 'password' ? 'default' : 'outline'} onClick={() => setSettingsTab('password')} className="text-xs">
+            <Button size="sm" variant={settingsTab === 'password' ? 'default' : 'outline'} onClick={() => { setSettingsTab('password'); setNewValue(''); }} className="text-xs">
               Alterar Senha
             </Button>
-            <Button size="sm" variant={settingsTab === 'pin' ? 'default' : 'outline'} onClick={() => setSettingsTab('pin')} className="text-xs">
+            <Button size="sm" variant={settingsTab === 'pin' ? 'default' : 'outline'} onClick={() => { setSettingsTab('pin'); setNewValue(''); }} className="text-xs">
               Alterar PIN
             </Button>
           </div>
           {settingsTab === 'password' && (
             <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">Senha atual: <span className="font-mono text-foreground">{password}</span></p>
               <p className="text-xs text-muted-foreground">Informe o PIN para alterar a senha</p>
-              <Input placeholder="PIN atual" value={settingsPin} onChange={(e) => setSettingsPin(e.target.value)} className="bg-secondary border-border" type="password" />
-              <Input placeholder="Nova senha" value={newValue} onChange={(e) => setNewValue(e.target.value)} className="bg-secondary border-border" type="password" />
+              <PasswordInput placeholder="PIN atual" value={settingsPin} onChange={(e) => setSettingsPin(e.target.value.replace(/\D/g, '').slice(0, 4))} className="bg-secondary border-border" />
+              <PasswordInput placeholder="Nova senha" value={newValue} onChange={(e) => setNewValue(e.target.value)} className="bg-secondary border-border" />
               <Button onClick={handleChangePassword} className="w-full bg-primary hover:bg-primary/90">Alterar Senha</Button>
             </div>
           )}
           {settingsTab === 'pin' && (
             <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">PIN atual: <span className="font-mono text-foreground">{pin}</span></p>
               <p className="text-xs text-muted-foreground">Informe a senha para alterar o PIN</p>
-              <Input placeholder="Senha atual" value={settingsPassword} onChange={(e) => setSettingsPassword(e.target.value)} className="bg-secondary border-border" type="password" />
-              <Input placeholder="Novo PIN" value={newValue} onChange={(e) => setNewValue(e.target.value.replace(/\D/g, '').slice(0, 6))} className="bg-secondary border-border" />
+              <PasswordInput placeholder="Senha atual" value={settingsPassword} onChange={(e) => setSettingsPassword(e.target.value)} className="bg-secondary border-border" />
+              <Input placeholder="Novo PIN (4 dígitos)" value={newValue} onChange={(e) => setNewValue(e.target.value.replace(/\D/g, '').slice(0, 4))} className="bg-secondary border-border" />
               <Button onClick={handleChangePin} className="w-full bg-primary hover:bg-primary/90">Alterar PIN</Button>
             </div>
           )}

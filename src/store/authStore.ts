@@ -30,7 +30,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       cnpj: '00.000.000/0001-00',
       password: 'admin123',
-      pin: '1234',
+      pin: '1234', // 4 digits only
       pinUnlocked: false,
       companyName: 'Bella Pizza',
 
