@@ -65,6 +65,7 @@ export function Cart() {
     setPayments([]);
     setShowPayment(false);
     setSplitMode(false);
+    setCurrentMethod(null);
     setCustomerName('');
     setCustomerContact('');
     toast.success('Venda finalizada!');
