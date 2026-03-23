@@ -1,70 +1,147 @@
-import { useLocation, Link } from 'react-router-dom';
-import { ShoppingCart, LayoutDashboard, Package, Wallet, Lock, Unlock, User } from 'lucide-react';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { ShoppingCart, LayoutDashboard, Package, Wallet, Receipt, Lock, Unlock, LogOut, Settings } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 import { useStore } from '@/store/useStore';
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const links = [
   { to: '/', label: 'PDV', icon: ShoppingCart },
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/produtos', label: 'Produtos', icon: Package },
   { to: '/caixa', label: 'Caixa', icon: Wallet },
+  { to: '/vendas', label: 'Vendas', icon: Receipt },
 ];
 
 export function TopNav() {
   const { pathname } = useLocation();
-  const { userRole, setUserRole, pinUnlocked, lockPin, cashRegister } = useStore();
+  const navigate = useNavigate();
+  const { pinUnlocked, lockPin, logout, companyName, changePassword, changePin } = useAuthStore();
+  const { cashRegister, cart } = useStore();
   const isRegisterOpen = cashRegister && !cashRegister.closedAt;
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<'password' | 'pin'>('password');
+  const [settingsPin, setSettingsPin] = useState('');
+  const [settingsPassword, setSettingsPassword] = useState('');
+  const [newValue, setNewValue] = useState('');
+
+  const handleNavClick = (to: string, e: React.MouseEvent) => {
+    if (pathname === '/' && to !== '/' && cart.length > 0) {
+      e.preventDefault();
+      if (window.confirm('Você tem itens no carrinho. Ao sair do PDV o carrinho será perdido. Deseja continuar?')) {
+        navigate(to);
+      }
+    }
+  };
+
+  const handleChangePassword = () => {
+    if (changePassword(settingsPin, newValue)) {
+      toast.success('Senha alterada!');
+      setShowSettings(false);
+      setSettingsPin('');
+      setNewValue('');
+    } else {
+      toast.error('PIN incorreto');
+    }
+  };
+
+  const handleChangePin = () => {
+    if (changePin(settingsPassword, newValue)) {
+      toast.success('PIN alterado!');
+      setShowSettings(false);
+      setSettingsPassword('');
+      setNewValue('');
+    } else {
+      toast.error('Senha incorreta');
+    }
+  };
 
   return (
-    <nav className="h-12 bg-card border-b border-border flex items-center px-4 gap-1 shrink-0">
-      <span className="text-primary font-extrabold text-sm tracking-tight mr-5 flex items-center gap-1.5">
-        🍕 PizzaPDV
-      </span>
+    <>
+      <nav className="h-12 bg-card border-b border-border flex items-center px-4 gap-1 shrink-0">
+        <span className="text-primary font-extrabold text-sm tracking-tight mr-5 flex items-center gap-1.5">
+          🍕 {companyName}
+        </span>
 
-      <div className="flex gap-0.5">
-        {links.map((l) => {
-          const active = pathname === l.to;
-          if (l.to === '/dashboard' && userRole !== 'admin') return null;
-          return (
-            <Link
-              key={l.to}
-              to={l.to}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-              }`}
-            >
-              <l.icon className="w-3.5 h-3.5" />
-              {l.label}
-              {l.to === '/caixa' && isRegisterOpen && (
-                <span className="w-1.5 h-1.5 rounded-full bg-success" />
-              )}
-            </Link>
-          );
-        })}
-      </div>
+        <div className="flex gap-0.5">
+          {links.map((l) => {
+            const active = pathname === l.to;
+            return (
+              <Link
+                key={l.to}
+                to={l.to}
+                onClick={(e) => handleNavClick(l.to, e)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                  active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                }`}
+              >
+                <l.icon className="w-3.5 h-3.5" />
+                {l.label}
+                {l.to === '/caixa' && isRegisterOpen && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                )}
+              </Link>
+            );
+          })}
+        </div>
 
-      <div className="ml-auto flex items-center gap-2">
-        {/* Register status indicator */}
-        {isRegisterOpen && (
-          <span className="text-[10px] text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded font-medium">
-            Caixa Aberto
-          </span>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          {isRegisterOpen && (
+            <span className="text-[10px] text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded font-medium">
+              Caixa Aberto
+            </span>
+          )}
 
-        {/* Role switcher */}
-        <button
-          onClick={() => setUserRole(userRole === 'admin' ? 'employee' : 'admin')}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary px-2 py-1 rounded hover:text-foreground transition-colors"
-        >
-          <User className="w-3 h-3" />
-          <span className="capitalize">{userRole === 'admin' ? 'Admin' : 'Funcionário'}</span>
-        </button>
+          {pinUnlocked && (
+            <button onClick={lockPin} className="text-success hover:text-foreground transition-colors p-1" title="Bloquear PIN">
+              <Unlock className="w-3.5 h-3.5" />
+            </button>
+          )}
 
-        {userRole === 'admin' && pinUnlocked && (
-          <button onClick={lockPin} className="text-success hover:text-foreground transition-colors p-1" title="Bloquear PIN">
-            <Unlock className="w-3.5 h-3.5" />
+          <button onClick={() => setShowSettings(true)} className="text-muted-foreground hover:text-foreground transition-colors p-1" title="Configurações">
+            <Settings className="w-3.5 h-3.5" />
           </button>
-        )}
-      </div>
-    </nav>
+
+          <button onClick={logout} className="text-muted-foreground hover:text-destructive transition-colors p-1" title="Sair">
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </nav>
+
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Configurações</DialogTitle>
+          </DialogHeader>
+          <div className="flex gap-2 mb-4">
+            <Button size="sm" variant={settingsTab === 'password' ? 'default' : 'outline'} onClick={() => setSettingsTab('password')} className="text-xs">
+              Alterar Senha
+            </Button>
+            <Button size="sm" variant={settingsTab === 'pin' ? 'default' : 'outline'} onClick={() => setSettingsTab('pin')} className="text-xs">
+              Alterar PIN
+            </Button>
+          </div>
+          {settingsTab === 'password' && (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">Informe o PIN para alterar a senha</p>
+              <Input placeholder="PIN atual" value={settingsPin} onChange={(e) => setSettingsPin(e.target.value)} className="bg-secondary border-border" type="password" />
+              <Input placeholder="Nova senha" value={newValue} onChange={(e) => setNewValue(e.target.value)} className="bg-secondary border-border" type="password" />
+              <Button onClick={handleChangePassword} className="w-full bg-primary hover:bg-primary/90">Alterar Senha</Button>
+            </div>
+          )}
+          {settingsTab === 'pin' && (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">Informe a senha para alterar o PIN</p>
+              <Input placeholder="Senha atual" value={settingsPassword} onChange={(e) => setSettingsPassword(e.target.value)} className="bg-secondary border-border" type="password" />
+              <Input placeholder="Novo PIN" value={newValue} onChange={(e) => setNewValue(e.target.value.replace(/\D/g, '').slice(0, 6))} className="bg-secondary border-border" />
+              <Button onClick={handleChangePin} className="w-full bg-primary hover:bg-primary/90">Alterar PIN</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
