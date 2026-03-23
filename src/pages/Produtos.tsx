@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Lock } from 'lucide-react';
+import { Plus, Pencil, Trash2, Lock, ShieldCheck, LogOut } from 'lucide-react';
 
 const ICONS = ['🍕','🍔','🥤','🧃','💧','🍟','🧅','🧀','🫙','🍰','🍫','🍌','☕','🥛','🍺','🥩','🌭','🥗','➕','📦'];
 
@@ -18,13 +18,18 @@ const emptyProduct: Omit<Product, 'id'> = {
 
 export default function Produtos() {
   const { products, addProduct, updateProduct, deleteProduct } = useStore();
-  const { pinUnlocked } = useAuthStore();
+  const { pinUnlocked, unlockPin, lockPin } = useAuthStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<Omit<Product, 'id'>>(emptyProduct);
   const [filterCat, setFilterCat] = useState<Category | 'all'>('all');
   const [obsInput, setObsInput] = useState('');
 
+  // Admin PIN dialog
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+
+  const isAdmin = pinUnlocked;
   const filtered = products.filter(p => filterCat === 'all' || p.category === filterCat);
   const isPizza = form.category === 'pizza';
 
@@ -38,62 +43,219 @@ export default function Produtos() {
     setDialogOpen(false);
   };
 
-  const handleDelete = (id: string) => { if (window.confirm('Remover?')) { deleteProduct(id); toast.success('Removido'); } };
+  const handleDelete = (id: string) => { if (window.confirm('Remover este produto?')) { deleteProduct(id); toast.success('Removido'); } };
   const addObs = () => { if (!obsInput.trim()) return; setForm({ ...form, observations: [...(form.observations || []), obsInput.trim()] }); setObsInput(''); };
+
+  const handlePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (unlockPin(pinInput)) {
+      toast.success('Modo administrador ativado');
+      setShowPinDialog(false);
+      setPinInput('');
+    } else {
+      toast.error('PIN incorreto');
+      setPinInput('');
+    }
+  };
+
+  const handleLogoutAdmin = () => {
+    lockPin();
+    toast.success('Saiu do modo administrador');
+  };
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">📦 Produtos</h1>
-        <Button onClick={openNew} className="bg-primary hover:bg-primary/90 gap-1"><Plus className="w-4 h-4" /> Novo</Button>
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Produtos</h1>
+          <p className="text-sm text-muted-foreground">
+            {isAdmin ? 'Modo administrador — gerencie seus produtos' : 'Visualização de produtos'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {isAdmin ? (
+            <>
+              <Button onClick={openNew} className="bg-primary hover:bg-primary/90 gap-1.5 font-bold">
+                <Plus className="w-4 h-4" /> Novo Produto
+              </Button>
+              <Button onClick={handleLogoutAdmin} variant="outline" className="gap-1.5 border-warning text-warning hover:bg-warning/10">
+                <LogOut className="w-4 h-4" /> Sair do Admin
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => setShowPinDialog(true)} variant="outline" className="gap-1.5">
+              <ShieldCheck className="w-4 h-4" /> Entrar como Administrador
+            </Button>
+          )}
+        </div>
       </div>
-      <div className="flex gap-1 flex-wrap">
-        <button onClick={() => setFilterCat('all')} className={`px-3 py-1.5 rounded text-xs font-medium ${filterCat === 'all' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>Todos</button>
-        {CATEGORIES.map(c => (<button key={c.value} onClick={() => setFilterCat(c.value)} className={`px-3 py-1.5 rounded text-xs font-medium ${filterCat === c.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>{c.icon} {c.label}</button>))}
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {filtered.map(p => (
-          <div key={p.id} className="glass-card p-3 flex items-center gap-3">
-            <span className="text-3xl">{p.icon}</span>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{p.name}</p>
-              <p className="text-xs text-muted-foreground capitalize">{p.category}</p>
-              {p.category === 'pizza' && p.pizzaPrices ? <p className="text-xs text-primary font-bold">P:{formatCurrency(p.pizzaPrices.P)} G:{formatCurrency(p.pizzaPrices.G)}</p> : <p className="text-xs text-primary font-bold">{formatCurrency(p.price)}</p>}
-              {pinUnlocked && <p className="text-[10px] text-destructive flex items-center gap-1"><Lock className="w-2.5 h-2.5" />Custo: {p.category === 'pizza' && p.pizzaCosts ? formatCurrency(p.pizzaCosts.G) : formatCurrency(p.cost)}</p>}
-            </div>
-            <div className="flex gap-1">
-              <button onClick={() => openEdit(p)} className="p-1.5 rounded bg-secondary hover:bg-accent"><Pencil className="w-3.5 h-3.5" /></button>
-              <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded bg-secondary hover:bg-destructive/20 text-destructive"><Trash2 className="w-3.5 h-3.5" /></button>
-            </div>
-          </div>
+
+      {/* Admin badge */}
+      {isAdmin && (
+        <div className="status-badge status-open w-fit">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          Administrador
+        </div>
+      )}
+
+      {/* Category filters */}
+      <div className="flex gap-1.5 flex-wrap">
+        <button onClick={() => setFilterCat('all')} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filterCat === 'all' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>Todos</button>
+        {CATEGORIES.map(c => (
+          <button key={c.value} onClick={() => setFilterCat(c.value)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${filterCat === c.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
+            {c.icon} {c.label}
+          </button>
         ))}
       </div>
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-card border-border max-w-md max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editing ? 'Editar' : 'Novo'} Produto</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><label className="text-xs text-muted-foreground">Nome</label><Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="bg-secondary border-border" /></div>
-            <div><label className="text-xs text-muted-foreground">Categoria</label>
-              <div className="grid grid-cols-3 gap-1 mt-1">{CATEGORIES.map(c => (<button key={c.value} onClick={() => setForm({...form, category: c.value, ...(c.value === 'pizza' ? {pizzaType:'tradicional',pizzaPrices:{P:0,M:0,G:0,GG:0},pizzaCosts:{P:0,M:0,G:0,GG:0}} : {pizzaType:undefined,pizzaPrices:undefined,pizzaCosts:undefined})})} className={`px-2 py-1.5 rounded text-xs font-medium ${form.category === c.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>{c.icon} {c.label}</button>))}</div>
+
+      {/* Products grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {filtered.map(p => (
+          <div key={p.id} className="glass-card p-4 flex items-center gap-3 transition-all hover:border-primary/30">
+            <span className="text-3xl">{p.icon}</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm truncate">{p.name}</p>
+              <p className="text-xs text-muted-foreground capitalize">{p.category}{p.pizzaType ? ` · ${p.pizzaType}` : ''}</p>
+              {p.category === 'pizza' && p.pizzaPrices ? (
+                <div className="flex gap-2 mt-1">
+                  {(['P', 'M', 'G', 'GG'] as PizzaSize[]).map(s => (
+                    <span key={s} className="text-[10px] text-muted-foreground">
+                      <span className="font-bold text-foreground">{s}</span> {formatCurrency(p.pizzaPrices![s])}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-primary font-bold mt-0.5">{formatCurrency(p.price)}</p>
+              )}
+              {isAdmin && (
+                <p className="text-[10px] text-destructive flex items-center gap-1 mt-0.5">
+                  <Lock className="w-2.5 h-2.5" />
+                  Custo: {p.category === 'pizza' && p.pizzaCosts ? formatCurrency(p.pizzaCosts.G) : formatCurrency(p.cost)}
+                </p>
+              )}
             </div>
-            <div><label className="text-xs text-muted-foreground">Ícone</label><div className="flex gap-1 flex-wrap mt-1">{ICONS.map(icon => (<button key={icon} onClick={() => setForm({...form,icon})} className={`w-8 h-8 rounded flex items-center justify-center text-lg ${form.icon === icon ? 'bg-primary' : 'bg-secondary hover:bg-accent'}`}>{icon}</button>))}</div></div>
-            {isPizza && (<>
-              <div><label className="text-xs text-muted-foreground">Tipo</label><div className="grid grid-cols-4 gap-1 mt-1">{PIZZA_TYPES.map(t => (<button key={t.value} onClick={() => setForm({...form,pizzaType:t.value})} className={`px-2 py-1 rounded text-[10px] font-medium ${form.pizzaType === t.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>{t.label}</button>))}</div></div>
-              <div><label className="text-xs text-muted-foreground">Preços</label><div className="grid grid-cols-4 gap-2 mt-1">{(['P','M','G','GG'] as PizzaSize[]).map(s => (<div key={s}><span className="text-[10px] text-muted-foreground">{s}</span><Input type="number" step="0.01" value={form.pizzaPrices?.[s]||''} onChange={e => setForm({...form,pizzaPrices:{...form.pizzaPrices!,[s]:parseFloat(e.target.value)||0}})} className="bg-secondary border-border h-8 text-xs" /></div>))}</div></div>
-              {pinUnlocked && <div><label className="text-xs text-muted-foreground flex items-center gap-1"><Lock className="w-3 h-3"/>Custos</label><div className="grid grid-cols-4 gap-2 mt-1">{(['P','M','G','GG'] as PizzaSize[]).map(s => (<div key={s}><span className="text-[10px] text-muted-foreground">{s}</span><Input type="number" step="0.01" value={form.pizzaCosts?.[s]||''} onChange={e => setForm({...form,pizzaCosts:{...form.pizzaCosts!,[s]:parseFloat(e.target.value)||0}})} className="bg-secondary border-border h-8 text-xs" /></div>))}</div></div>}
-            </>)}
-            {!isPizza && (<>
-              <div><label className="text-xs text-muted-foreground">Preço</label><Input type="number" step="0.01" value={form.price||''} onChange={e => setForm({...form,price:parseFloat(e.target.value)||0})} className="bg-secondary border-border" /></div>
-              {pinUnlocked && <div><label className="text-xs text-muted-foreground flex items-center gap-1"><Lock className="w-3 h-3"/>Custo</label><Input type="number" step="0.01" value={form.cost||''} onChange={e => setForm({...form,cost:parseFloat(e.target.value)||0})} className="bg-secondary border-border" /></div>}
-            </>)}
-            <div><label className="text-xs text-muted-foreground">Observações</label>
-              {(form.observations||[]).map((obs,i) => (<div key={i} className="flex items-center gap-1 text-xs mt-1"><span className="flex-1 bg-secondary px-2 py-1 rounded">{obs}</span><button onClick={() => setForm({...form,observations:form.observations?.filter((_,j)=>j!==i)})} className="text-destructive"><Trash2 className="w-3 h-3"/></button></div>))}
-              <div className="flex gap-1 mt-1"><Input value={obsInput} onChange={e => setObsInput(e.target.value)} placeholder="Observação..." className="bg-secondary border-border h-8 text-xs" onKeyDown={e => e.key==='Enter' && addObs()} /><Button size="sm" onClick={addObs} className="h-8">+</Button></div>
-            </div>
-            <Button onClick={handleSave} className="w-full bg-primary hover:bg-primary/90 font-bold">{editing ? 'Salvar' : 'Adicionar'}</Button>
+            {isAdmin && (
+              <div className="flex gap-1">
+                <button onClick={() => openEdit(p)} className="p-2 rounded-lg bg-secondary hover:bg-accent transition-colors">
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={() => handleDelete(p.id)} className="p-2 rounded-lg bg-secondary hover:bg-destructive/20 text-destructive transition-colors">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
+        ))}
+        {filtered.length === 0 && <p className="col-span-full text-muted-foreground text-center py-12">Nenhum produto encontrado</p>}
+      </div>
+
+      {/* PIN Dialog */}
+      <Dialog open={showPinDialog} onOpenChange={setShowPinDialog}>
+        <DialogContent className="bg-card border-border max-w-xs">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 justify-center">
+              <ShieldCheck className="w-5 h-5 text-primary" /> Acesso Administrador
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handlePinSubmit} className="space-y-4">
+            <p className="text-sm text-muted-foreground text-center">Digite o PIN para gerenciar produtos</p>
+            <Input
+              type="password"
+              value={pinInput}
+              onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="••••"
+              className="bg-secondary border-border text-center text-lg tracking-widest"
+              autoFocus
+            />
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 font-bold">
+              Entrar
+            </Button>
+          </form>
         </DialogContent>
       </Dialog>
+
+      {/* Product Edit Dialog - only for admin */}
+      {isAdmin && (
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="bg-card border-border max-w-md max-h-[85vh] overflow-y-auto">
+            <DialogHeader><DialogTitle>{editing ? 'Editar' : 'Novo'} Produto</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground">Nome *</label>
+                <Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="bg-secondary border-border" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Categoria *</label>
+                <div className="grid grid-cols-3 gap-1 mt-1">
+                  {CATEGORIES.map(c => (
+                    <button key={c.value} onClick={() => setForm({...form, category: c.value, ...(c.value === 'pizza' ? {pizzaType:'tradicional',pizzaPrices:{P:0,M:0,G:0,GG:0},pizzaCosts:{P:0,M:0,G:0,GG:0}} : {pizzaType:undefined,pizzaPrices:undefined,pizzaCosts:undefined})})}
+                      className={`px-2 py-1.5 rounded text-xs font-medium ${form.category === c.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>
+                      {c.icon} {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Ícone</label>
+                <div className="flex gap-1 flex-wrap mt-1">
+                  {ICONS.map(icon => (
+                    <button key={icon} onClick={() => setForm({...form,icon})} className={`w-8 h-8 rounded flex items-center justify-center text-lg ${form.icon === icon ? 'bg-primary' : 'bg-secondary hover:bg-accent'}`}>{icon}</button>
+                  ))}
+                </div>
+              </div>
+              {isPizza && (<>
+                <div>
+                  <label className="text-xs text-muted-foreground">Tipo</label>
+                  <div className="grid grid-cols-4 gap-1 mt-1">
+                    {PIZZA_TYPES.map(t => (
+                      <button key={t.value} onClick={() => setForm({...form,pizzaType:t.value})} className={`px-2 py-1 rounded text-[10px] font-medium ${form.pizzaType === t.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>{t.label}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Preços *</label>
+                  <div className="grid grid-cols-4 gap-2 mt-1">
+                    {(['P','M','G','GG'] as PizzaSize[]).map(s => (
+                      <div key={s}><span className="text-[10px] text-muted-foreground">{s}</span>
+                        <Input type="number" step="0.01" value={form.pizzaPrices?.[s]||''} onChange={e => setForm({...form,pizzaPrices:{...form.pizzaPrices!,[s]:parseFloat(e.target.value)||0}})} className="bg-secondary border-border h-8 text-xs" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground flex items-center gap-1"><Lock className="w-3 h-3"/>Custos</label>
+                  <div className="grid grid-cols-4 gap-2 mt-1">
+                    {(['P','M','G','GG'] as PizzaSize[]).map(s => (
+                      <div key={s}><span className="text-[10px] text-muted-foreground">{s}</span>
+                        <Input type="number" step="0.01" value={form.pizzaCosts?.[s]||''} onChange={e => setForm({...form,pizzaCosts:{...form.pizzaCosts!,[s]:parseFloat(e.target.value)||0}})} className="bg-secondary border-border h-8 text-xs" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>)}
+              {!isPizza && (<>
+                <div><label className="text-xs text-muted-foreground">Preço *</label><Input type="number" step="0.01" value={form.price||''} onChange={e => setForm({...form,price:parseFloat(e.target.value)||0})} className="bg-secondary border-border" /></div>
+                <div><label className="text-xs text-muted-foreground flex items-center gap-1"><Lock className="w-3 h-3"/>Custo</label><Input type="number" step="0.01" value={form.cost||''} onChange={e => setForm({...form,cost:parseFloat(e.target.value)||0})} className="bg-secondary border-border" /></div>
+              </>)}
+              <div>
+                <label className="text-xs text-muted-foreground">Observações</label>
+                {(form.observations||[]).map((obs,i) => (
+                  <div key={i} className="flex items-center gap-1 text-xs mt-1">
+                    <span className="flex-1 bg-secondary px-2 py-1 rounded">{obs}</span>
+                    <button onClick={() => setForm({...form,observations:form.observations?.filter((_,j)=>j!==i)})} className="text-destructive"><Trash2 className="w-3 h-3"/></button>
+                  </div>
+                ))}
+                <div className="flex gap-1 mt-1">
+                  <Input value={obsInput} onChange={e => setObsInput(e.target.value)} placeholder="Observação..." className="bg-secondary border-border h-8 text-xs" onKeyDown={e => e.key==='Enter' && addObs()} />
+                  <Button size="sm" onClick={addObs} className="h-8">+</Button>
+                </div>
+              </div>
+              <Button onClick={handleSave} className="w-full bg-primary hover:bg-primary/90 font-bold">{editing ? 'Salvar' : 'Adicionar'}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

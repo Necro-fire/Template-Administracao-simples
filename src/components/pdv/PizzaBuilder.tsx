@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useStore } from '@/store/useStore';
@@ -60,10 +60,30 @@ export function PizzaBuilder({ open, onClose, initialFlavorId }: PizzaBuilderPro
     setTypeFilter('all');
   };
 
-  // Set initial flavor when dialog opens
-  useState(() => {
-    if (initialFlavorId) setFlavor1Id(initialFlavorId);
-  });
+  useEffect(() => {
+    if (initialFlavorId && open) setFlavor1Id(initialFlavorId);
+  }, [initialFlavorId, open]);
+
+  const FlavorCard = ({ product, selected, onClick }: { product: Product; selected: boolean; onClick: () => void }) => (
+    <button
+      onClick={onClick}
+      className={`text-left px-3 py-2.5 rounded-lg transition-all border ${
+        selected
+          ? 'bg-primary/15 border-primary text-foreground shadow-sm'
+          : 'bg-secondary border-transparent text-foreground hover:bg-accent hover:border-border'
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold truncate">{product.name}</span>
+        <span className={`text-xs font-bold whitespace-nowrap ${selected ? 'text-primary' : 'text-muted-foreground'}`}>
+          {formatCurrency(getPrice(product, size))}
+        </span>
+      </div>
+      {product.pizzaType && (
+        <span className="text-[10px] text-muted-foreground capitalize">{product.pizzaType}</span>
+      )}
+    </button>
+  );
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { onClose(); resetState(); } }}>
@@ -80,8 +100,10 @@ export function PizzaBuilder({ open, onClose, initialFlavorId }: PizzaBuilderPro
               <button
                 key={s.value}
                 onClick={() => setSize(s.value)}
-                className={`py-2 rounded-lg text-sm font-bold transition-colors ${
-                  size === s.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
+                className={`py-2.5 rounded-lg text-sm font-bold transition-all ${
+                  size === s.value
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'bg-secondary text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {s.value}
@@ -96,88 +118,88 @@ export function PizzaBuilder({ open, onClose, initialFlavorId }: PizzaBuilderPro
           <label className="text-xs font-medium text-muted-foreground">Sabores:</label>
           <button
             onClick={() => { setTwoFlavors(false); setFlavor2Id(''); }}
-            className={`px-3 py-1 rounded text-xs font-medium ${!twoFlavors ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${!twoFlavors ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}
           >
             1 Sabor
           </button>
           <button
             onClick={() => setTwoFlavors(true)}
-            className={`px-3 py-1 rounded text-xs font-medium ${twoFlavors ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${twoFlavors ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}
           >
             2 Sabores
           </button>
         </div>
 
         {/* Type filter */}
-        <div className="flex gap-1 flex-wrap">
-          <button onClick={() => setTypeFilter('all')} className={`px-2 py-1 rounded text-[10px] font-medium ${typeFilter === 'all' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'}`}>
+        <div className="flex gap-1.5 flex-wrap">
+          <button onClick={() => setTypeFilter('all')} className={`px-3 py-1 rounded-lg text-[11px] font-medium transition-colors ${typeFilter === 'all' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
             Todos
           </button>
           {PIZZA_TYPES.map((t) => (
-            <button key={t.value} onClick={() => setTypeFilter(t.value)} className={`px-2 py-1 rounded text-[10px] font-medium ${typeFilter === t.value ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'}`}>
+            <button key={t.value} onClick={() => setTypeFilter(t.value)} className={`px-3 py-1 rounded-lg text-[11px] font-medium transition-colors ${typeFilter === t.value ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
               {t.label}
             </button>
           ))}
         </div>
 
-        {/* Flavor 1 */}
-        <div>
-          <label className="text-xs font-medium text-muted-foreground mb-2 block">
-            {twoFlavors ? '1º Sabor' : 'Sabor'}
-          </label>
-          <div className="grid grid-cols-2 gap-1.5 max-h-32 overflow-y-auto">
-            {filteredPizzas.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setFlavor1Id(p.id)}
-                className={`text-left px-2 py-1.5 rounded text-xs transition-colors ${
-                  flavor1Id === p.id ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground hover:bg-accent'
-                }`}
-              >
-                <span className="font-medium">{p.name}</span>
-                <span className="block text-[10px] opacity-75">{formatCurrency(getPrice(p, size))}</span>
-              </button>
-            ))}
+        {/* Flavors - side by side when 2 flavors */}
+        {twoFlavors ? (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-2 block">1º Sabor</label>
+              <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto pr-1">
+                {filteredPizzas.map((p) => (
+                  <FlavorCard key={p.id} product={p} selected={flavor1Id === p.id} onClick={() => setFlavor1Id(p.id)} />
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-2 block">2º Sabor</label>
+              <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto pr-1">
+                {filteredPizzas.filter((p) => p.id !== flavor1Id).map((p) => (
+                  <FlavorCard key={p.id} product={p} selected={flavor2Id === p.id} onClick={() => setFlavor2Id(p.id)} />
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Flavor 2 */}
-        {twoFlavors && (
+        ) : (
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-2 block">2º Sabor</label>
-            <div className="grid grid-cols-2 gap-1.5 max-h-32 overflow-y-auto">
-              {filteredPizzas.filter((p) => p.id !== flavor1Id).map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => setFlavor2Id(p.id)}
-                  className={`text-left px-2 py-1.5 rounded text-xs transition-colors ${
-                    flavor2Id === p.id ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground hover:bg-accent'
-                  }`}
-                >
-                  <span className="font-medium">{p.name}</span>
-                  <span className="block text-[10px] opacity-75">{formatCurrency(getPrice(p, size))}</span>
-                </button>
+            <label className="text-xs font-medium text-muted-foreground mb-2 block">Sabor</label>
+            <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto">
+              {filteredPizzas.map((p) => (
+                <FlavorCard key={p.id} product={p} selected={flavor1Id === p.id} onClick={() => setFlavor1Id(p.id)} />
               ))}
             </div>
           </div>
         )}
 
         {/* Summary */}
-        <div className="glass-card p-3 space-y-1">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Pizza {size}</span>
-            <span className="font-bold text-primary">{formatCurrency(calculatePrice())}</span>
+        <div className="glass-card p-4 space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Pizza {size}</span>
+            <span className="text-lg font-extrabold text-primary">{formatCurrency(calculatePrice())}</span>
           </div>
-          {flavor1 && <p className="text-xs">• {flavor1.name}</p>}
-          {twoFlavors && flavor2 && <p className="text-xs">• {flavor2.name}</p>}
+          {flavor1 && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="w-2 h-2 rounded-full bg-primary" />
+              {flavor1.name}
+              {!twoFlavors && <span className="text-xs text-muted-foreground ml-auto">{formatCurrency(getPrice(flavor1, size))}</span>}
+            </div>
+          )}
+          {twoFlavors && flavor2 && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="w-2 h-2 rounded-full bg-info" />
+              {flavor2.name}
+            </div>
+          )}
           {twoFlavors && flavor1 && flavor2 && (
-            <p className="text-[10px] text-muted-foreground">
-              ({formatCurrency(getPrice(flavor1, size))} ÷ 2) + ({formatCurrency(getPrice(flavor2, size))} ÷ 2)
+            <p className="text-[10px] text-muted-foreground border-t border-border pt-2 mt-1">
+              ({formatCurrency(getPrice(flavor1, size))} ÷ 2) + ({formatCurrency(getPrice(flavor2, size))} ÷ 2) = {formatCurrency(calculatePrice())}
             </p>
           )}
         </div>
 
-        <Button onClick={handleAdd} disabled={!flavor1 || (twoFlavors && !flavor2)} className="w-full bg-primary hover:bg-primary/90 font-bold">
+        <Button onClick={handleAdd} disabled={!flavor1 || (twoFlavors && !flavor2)} className="w-full bg-primary hover:bg-primary/90 font-bold text-sm h-11">
           Adicionar ao Carrinho
         </Button>
       </DialogContent>
