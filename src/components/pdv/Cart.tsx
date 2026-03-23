@@ -30,6 +30,7 @@ export function Cart() {
   const [editingObsId, setEditingObsId] = useState<string | null>(null);
   const [lastSale, setLastSale] = useState<any>(null);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [showReceiptConfirm, setShowReceiptConfirm] = useState(false);
 
   const total = cart.reduce((s, i) => s + i.calculatedPrice * i.quantity, 0);
   const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
