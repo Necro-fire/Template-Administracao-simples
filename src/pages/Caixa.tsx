@@ -1,223 +1,103 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { PinGuard } from '@/components/PinGuard';
+import { DateFilter } from '@/components/DateFilter';
 import { useStore } from '@/store/useStore';
-import { Button } from '@/components/ui/button';
+import { formatCurrency, formatDateTime } from '@/lib/format';
+import { startOfDay, endOfDay } from 'date-fns';
 import { Input } from '@/components/ui/input';
-import { Lock, Wallet } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { PinDialog } from '@/components/PinDialog';
-import { CaixaStatusBar } from '@/components/caixa/CaixaStatusBar';
-import { CaixaSummary } from '@/components/caixa/CaixaSummary';
-import { CaixaActions } from '@/components/caixa/CaixaActions';
-import { CaixaPaymentBreakdown } from '@/components/caixa/CaixaPaymentBreakdown';
-import { CaixaMovementsTable } from '@/components/caixa/CaixaMovementsTable';
-import { CaixaAuditLog } from '@/components/caixa/CaixaAuditLog';
-import { MovementDialog, CloseDialog } from '@/components/caixa/CaixaDialogs';
-import { buildUnifiedMovements, fmt, fmtDate } from '@/lib/caixa-utils';
-import type { PaymentMethod, MovementType } from '@/types/pizzaria';
 
 export default function Caixa() {
-  const {
-    cashRegister, cashHistory, openRegister, closeRegister,
-    addMovement, deleteMovement, auditLogs, addAuditLog, pinUnlocked,
-  } = useStore();
-
+  const { cashRegister, cashHistory, openRegister, closeRegister, addMovement } = useStore();
   const [initialAmount, setInitialAmount] = useState('');
-  const [movType, setMovType] = useState<MovementType | null>(null);
-  const [showCloseDialog, setShowCloseDialog] = useState(false);
-  const [showPinDialog, setShowPinDialog] = useState(false);
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
-  const [activeTab, setActiveTab] = useState<'movements' | 'audit'>('movements');
+  const [movType, setMovType] = useState<'reforco' | 'sangria'>('reforco');
+  const [movAmount, setMovAmount] = useState('');
+  const [movDesc, setMovDesc] = useState('');
+  const [dateRange, setDateRange] = useState({ start: startOfDay(new Date()), end: endOfDay(new Date()) });
 
-  const requirePin = (action: () => void) => {
-    if (pinUnlocked) {
-      action();
-      return;
-    }
-    setPendingAction(() => action);
-    setShowPinDialog(true);
+  const isOpen = cashRegister && !cashRegister.closedAt;
+
+  const filteredHistory = useMemo(() => cashHistory.filter(r => { const d = new Date(r.openedAt); return d >= dateRange.start && d <= dateRange.end; }), [cashHistory, dateRange]);
+
+  const handleOpen = () => { const a = parseFloat(initialAmount); if (isNaN(a) || a < 0) { toast.error('Valor inválido'); return; } openRegister(a); setInitialAmount(''); toast.success('Caixa aberto!'); };
+  const handleClose = () => { if (!window.confirm('Fechar o caixa?')) return; closeRegister(); toast.success('Caixa fechado!'); };
+  const handleMovement = () => { const a = parseFloat(movAmount); if (isNaN(a) || a <= 0) { toast.error('Valor inválido'); return; } addMovement({ type: movType, amount: a, description: movDesc || movType, origin: 'manual' }); setMovAmount(''); setMovDesc(''); toast.success('Registrado'); };
+
+  const calcTotal = () => {
+    if (!cashRegister) return 0;
+    const salesTotal = cashRegister.sales.filter(s => !s.cancelled).reduce((s, sale) => s + sale.total, 0);
+    const entries = cashRegister.entries.reduce((s, e) => s + e.amount, 0);
+    const exits = cashRegister.exits.reduce((s, e) => s + e.amount, 0);
+    return cashRegister.initialAmount + salesTotal + entries - exits;
   };
-
-  const handleOpen = () => {
-    const val = parseFloat(initialAmount);
-    if (isNaN(val) || val < 0) { toast.error('Informe um valor válido'); return; }
-    openRegister(val);
-    setInitialAmount('');
-    toast.success('Caixa aberto com sucesso');
-  };
-
-  const handleMovement = (amount: number, description: string, paymentMethod: PaymentMethod) => {
-    if (!movType) return;
-    addMovement({ type: movType, amount, description, paymentMethod, origin: 'manual' });
-    addAuditLog(`MOVEMENT_${movType.toUpperCase()}`, `${description}: R$ ${amount.toFixed(2)}`);
-    setMovType(null);
-    toast.success('Movimentação registrada');
-  };
-
-  const handleClose = (informedAmount: number) => {
-    setShowCloseDialog(false);
-    closeRegister(informedAmount);
-    toast.success('Caixa fechado com sucesso');
-  };
-
-  const handleDeleteMovement = (id: string) => {
-    requirePin(() => {
-      deleteMovement(id);
-      toast.success('Movimentação removida');
-    });
-  };
-
-  // --- Closed state ---
-  if (!cashRegister || cashRegister.closedAt) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-3.5rem)]">
-        <div className="bg-card border border-border rounded-lg p-8 max-w-lg w-full space-y-5">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-foreground">Abertura de Caixa</h2>
-              <p className="text-xs text-muted-foreground">Informe o valor inicial para iniciar o turno</p>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium mb-1 block">
-              Valor Inicial (R$)
-            </label>
-            <Input
-              type="number"
-              placeholder="0,00"
-              value={initialAmount}
-              onChange={(e) => setInitialAmount(e.target.value)}
-              className="bg-secondary text-foreground"
-            />
-          </div>
-
-          <Button onClick={handleOpen} className="w-full">
-            Abrir Caixa
-          </Button>
-
-          {/* Last closed session */}
-          {cashRegister?.closedAt && (
-            <div className="border-t border-border pt-4 space-y-2">
-              <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Último Fechamento</p>
-              <div className="text-sm space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Encerrado em</span>
-                  <span className="text-foreground tabular-nums">{fmtDate(cashRegister.closedAt)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Vendas</span>
-                  <span className="text-foreground">{cashRegister.sales.length}</span>
-                </div>
-                {cashRegister.informedAmount !== undefined && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Valor informado</span>
-                    <span className="text-foreground tabular-nums">{fmt(cashRegister.informedAmount)}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* History */}
-          {cashHistory.length > 0 && (
-            <div className="border-t border-border pt-4 space-y-2">
-              <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
-                Histórico de Turnos ({cashHistory.length})
-              </p>
-              <div className="space-y-1.5 max-h-[120px] overflow-y-auto">
-                {cashHistory.slice(-5).reverse().map((h) => (
-                  <div key={h.id} className="flex justify-between text-xs text-muted-foreground py-1 border-b border-border/50">
-                    <span className="tabular-nums">{fmtDate(h.openedAt)}</span>
-                    <span>{h.sales.length} vendas</span>
-                    <span className="text-foreground font-medium tabular-nums">
-                      {fmt(h.sales.reduce((s, sale) => s + sale.total, 0))}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // --- Open state ---
-  const movements = buildUnifiedMovements(
-    cashRegister.entries, cashRegister.exits, cashRegister.sales
-  );
 
   return (
-    <div className="p-5 space-y-4 max-w-7xl mx-auto">
-      <CaixaStatusBar cashRegister={cashRegister} />
-      <CaixaSummary cashRegister={cashRegister} />
-      <CaixaActions
-        onEntry={() => setMovType('entry')}
-        onExit={() => setMovType('exit')}
-        onSangria={() => setMovType('sangria')}
-        onReforco={() => setMovType('reforco')}
-        onClose={() => requirePin(() => setShowCloseDialog(true))}
-      />
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
-          {/* Tabs */}
-          <div className="flex gap-1 mb-3">
-            {[
-              { key: 'movements' as const, label: `Movimentações (${movements.length})` },
-              { key: 'audit' as const, label: `Auditoria (${auditLogs.length})` },
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                  activeTab === tab.key
-                    ? 'bg-secondary text-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          {activeTab === 'movements' ? (
-            <CaixaMovementsTable
-              movements={movements}
-              onDelete={handleDeleteMovement}
-              canDelete={pinUnlocked}
-            />
-          ) : (
-            <CaixaAuditLog logs={auditLogs} />
+    <PinGuard title="Caixa">
+      <div className="p-4 space-y-4 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold">💰 Caixa</h1>
+          {!isOpen && (
+            <div className="flex items-center gap-2">
+              <Input type="number" step="0.01" value={initialAmount} onChange={e => setInitialAmount(e.target.value)} placeholder="Valor inicial" className="bg-secondary border-border w-40 h-9 text-sm" />
+              <Button onClick={handleOpen} className="bg-success hover:bg-success/90 text-success-foreground font-bold">Abrir Caixa</Button>
+            </div>
           )}
+          {isOpen && <Button onClick={handleClose} variant="outline" className="border-destructive text-destructive hover:bg-destructive/10">Fechar Caixa</Button>}
         </div>
-        <CaixaPaymentBreakdown cashRegister={cashRegister} />
-      </div>
 
-      {/* Dialogs */}
-      <MovementDialog
-        open={!!movType}
-        type={movType}
-        onClose={() => setMovType(null)}
-        onConfirm={handleMovement}
-      />
-      <CloseDialog
-        open={showCloseDialog}
-        cashRegister={cashRegister}
-        onClose={() => setShowCloseDialog(false)}
-        onConfirm={handleClose}
-      />
-      <PinDialog
-        open={showPinDialog}
-        onClose={() => { setShowPinDialog(false); setPendingAction(null); }}
-        onSuccess={() => {
-          setShowPinDialog(false);
-          pendingAction?.();
-          setPendingAction(null);
-        }}
-      />
-    </div>
+        {isOpen && cashRegister && (
+          <>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="glass-card p-3"><p className="text-xs text-muted-foreground">Saldo Inicial</p><p className="text-lg font-bold">{formatCurrency(cashRegister.initialAmount)}</p></div>
+              <div className="glass-card p-3"><p className="text-xs text-muted-foreground">Vendas</p><p className="text-lg font-bold text-success">{formatCurrency(cashRegister.sales.filter(s => !s.cancelled).reduce((s, sale) => s + sale.total, 0))}</p></div>
+              <div className="glass-card p-3"><p className="text-xs text-muted-foreground">Movimentações</p><p className="text-lg font-bold text-info">{formatCurrency(cashRegister.entries.reduce((s, e) => s + e.amount, 0) - cashRegister.exits.reduce((s, e) => s + e.amount, 0))}</p></div>
+              <div className="glass-card p-3"><p className="text-xs text-muted-foreground">Saldo Atual</p><p className="text-lg font-bold text-primary">{formatCurrency(calcTotal())}</p></div>
+            </div>
+            <div className="glass-card p-4">
+              <h3 className="text-sm font-bold mb-3">Nova Movimentação</h3>
+              <div className="flex gap-2 items-end flex-wrap">
+                <div className="flex gap-1">
+                  <button onClick={() => setMovType('reforco')} className={`px-3 py-1.5 rounded text-xs font-medium ${movType === 'reforco' ? 'bg-success text-success-foreground' : 'bg-secondary text-muted-foreground'}`}>Reforço</button>
+                  <button onClick={() => setMovType('sangria')} className={`px-3 py-1.5 rounded text-xs font-medium ${movType === 'sangria' ? 'bg-destructive text-destructive-foreground' : 'bg-secondary text-muted-foreground'}`}>Sangria</button>
+                </div>
+                <Input type="number" step="0.01" value={movAmount} onChange={e => setMovAmount(e.target.value)} placeholder="Valor" className="bg-secondary border-border h-9 text-sm w-32" />
+                <Input value={movDesc} onChange={e => setMovDesc(e.target.value)} placeholder="Descrição" className="bg-secondary border-border h-9 text-sm flex-1" />
+                <Button onClick={handleMovement} className="bg-primary hover:bg-primary/90 h-9">Registrar</Button>
+              </div>
+            </div>
+            <div className="glass-card p-4">
+              <h3 className="text-sm font-bold mb-3">Vendas ({cashRegister.sales.length})</h3>
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {cashRegister.sales.map(s => (
+                  <div key={s.id} className={`flex items-center justify-between bg-secondary rounded px-3 py-2 text-sm ${s.cancelled ? 'opacity-50 line-through' : ''}`}>
+                    <span className="font-mono text-xs">#{s.code}</span>
+                    <span className="text-xs text-muted-foreground">{s.customerName}</span>
+                    <span className="font-bold text-primary">{formatCurrency(s.total)}</span>
+                  </div>
+                ))}
+                {cashRegister.sales.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhuma venda</p>}
+              </div>
+            </div>
+          </>
+        )}
+
+        <div className="glass-card p-4">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h3 className="text-sm font-bold">Histórico</h3>
+            <DateFilter onFilter={(s, e) => setDateRange({ start: s, end: e })} />
+          </div>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {filteredHistory.map(r => (
+              <div key={r.id} className="bg-secondary rounded-lg p-3 text-sm">
+                <div className="flex justify-between"><span className="text-xs text-muted-foreground">{formatDateTime(r.openedAt)}</span><span className="font-bold text-primary">{formatCurrency(r.initialAmount + r.sales.filter(s => !s.cancelled).reduce((s, sale) => s + sale.total, 0))}</span></div>
+                <p className="text-xs text-muted-foreground mt-1">{r.sales.length} vendas · Inicial: {formatCurrency(r.initialAmount)}</p>
+              </div>
+            ))}
+            {filteredHistory.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhum registro</p>}
+          </div>
+        </div>
+      </div>
+    </PinGuard>
   );
 }
