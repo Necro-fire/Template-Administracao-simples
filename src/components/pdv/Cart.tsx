@@ -353,22 +353,7 @@ export function Cart() {
         </div>
       </div>
 
-      <ProfessionalAlert
-        open={showReceiptConfirm}
-        onClose={() => setShowReceiptConfirm(false)}
-        variant="success"
-        title="Venda concluída com sucesso. Deseja imprimir a nota?"
-        confirmLabel="Sim"
-        cancelLabel="Não"
-        onConfirm={() => {
-          setShowReceipt(true);
-          setShowReceiptConfirm(false);
-        }}
-        onCancel={() => setShowReceiptConfirm(false)}
-        showCancel
-      />
-
-      <ReceiptDialog sale={lastSale} open={showReceipt} onOpenChange={setShowReceipt} />
+      <ReceiptDialog sale={lastSale} open={showReceiptConfirm} onOpenChange={setShowReceiptConfirm} />
     </>
   );
 }

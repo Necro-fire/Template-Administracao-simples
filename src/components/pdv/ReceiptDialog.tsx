@@ -15,7 +15,7 @@ interface ReceiptDialogProps {
 }
 
 export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) {
-  const [receiptType, setReceiptType] = useState<ReceiptType>('cliente');
+  const [activePreview, setActivePreview] = useState<ReceiptType | null>(null);
   const { companyName, cnpj } = useAuthStore();
 
   if (!sale) return null;
@@ -45,13 +45,13 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
   const renderEntregador = () => {
     const lines: string[] = [
       companyName.toUpperCase(),
-      `CNPJ: ${cnpj}`,
+      cnpj ? `CNPJ: ${cnpj}` : '',
       '',
       'NOTA DO ENTREGADOR',
       `Pedido: ${sale.code}`,
       `Data: ${dateStr} | ${timeStr}`,
       '',
-    ];
+    ].filter(Boolean);
     if (sale.deliveryMode === 'entrega' && sale.deliveryAddress) {
       const addr = sale.deliveryAddress;
       lines.push('ENDEREÇO DE ENTREGA:');
@@ -68,12 +68,10 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     });
     lines.push('');
     lines.push(`TOTAL A RECEBER: ${formatCurrency(sale.total)}`);
-    if (sale.deliveryMode === 'entrega' && sale.deliveryAddress?.reference) {
-      lines.push(`Referência: ${sale.deliveryAddress.reference}`);
-    }
+    lines.push(`Forma de pagamento: ${paymentLabel}`);
     if (sale.observations.length > 0) {
       lines.push('');
-      lines.push('OBSERVAÇÕES DE ENTREGA:');
+      lines.push('OBSERVAÇÕES:');
       sale.observations.forEach(o => lines.push(o));
     }
     return lines.join('\n');
@@ -82,7 +80,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
   const renderCliente = () => {
     const lines: string[] = [
       companyName.toUpperCase(),
-      `CNPJ: ${cnpj}`,
+      cnpj ? `CNPJ: ${cnpj}` : '',
       'Obrigado pela preferência!',
       '',
       'NOTA DO CLIENTE',
@@ -90,7 +88,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       `Data: ${dateStr} | ${timeStr}`,
       '',
       'Itens:',
-    ];
+    ].filter(Boolean);
     sale.items.forEach(item => {
       const price = item.calculatedPrice * item.quantity;
       lines.push(`${item.quantity}x ${getItemLabel(item)} .......... ${formatCurrency(price)}`);
@@ -118,13 +116,13 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
   const renderCompleta = () => {
     const lines: string[] = [
       `${companyName.toUpperCase()} LTDA`,
-      `CNPJ: ${cnpj}`,
+      cnpj ? `CNPJ: ${cnpj}` : '',
       '',
       'NOTA COMPLETA',
       `Pedido: ${sale.code}`,
       `Data: ${dateStr} | ${timeStr}`,
       '',
-    ];
+    ].filter(Boolean);
     if (sale.customerName || sale.customerContact) {
       lines.push('CLIENTE:');
       if (sale.customerName) lines.push(`Nome: ${sale.customerName}`);
@@ -168,16 +166,16 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     return lines.join('\n');
   };
 
-  const getContent = () => {
-    switch (receiptType) {
+  const getContent = (type: ReceiptType) => {
+    switch (type) {
       case 'entregador': return renderEntregador();
       case 'cliente': return renderCliente();
       case 'completa': return renderCompleta();
     }
   };
 
-  const printReceipt = () => {
-    const content = getContent();
+  const printReceipt = (type: ReceiptType) => {
+    const content = getContent(type);
     const w = window.open('', '', 'width=320,height=600');
     if (!w) return;
     w.document.write(`<html><head><style>body{font-family:monospace;font-size:12px;width:80mm;margin:0 auto;padding:10px;white-space:pre-wrap;}</style></head><body>${content}</body></html>`);
@@ -186,42 +184,56 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     w.close();
   };
 
-  const tabs: { value: ReceiptType; label: string; icon: React.ReactNode }[] = [
-    { value: 'cliente', label: 'Cliente', icon: <User className="w-3.5 h-3.5" /> },
-    { value: 'entregador', label: 'Entregador', icon: <Truck className="w-3.5 h-3.5" /> },
-    { value: 'completa', label: 'Completa', icon: <FileText className="w-3.5 h-3.5" /> },
+  const receiptOptions: { value: ReceiptType; label: string; icon: React.ReactNode }[] = [
+    { value: 'cliente', label: 'Nota do Cliente', icon: <User className="w-4 h-4" /> },
+    { value: 'entregador', label: 'Nota do Entregador', icon: <Truck className="w-4 h-4" /> },
+    { value: 'completa', label: 'Nota Completa', icon: <FileText className="w-4 h-4" /> },
   ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border max-w-sm">
+      <DialogContent className="bg-card border-border max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-foreground">Notas do Pedido #{sale.code}</DialogTitle>
+          <DialogTitle className="text-foreground">Deseja imprimir alguma nota?</DialogTitle>
+          <p className="text-sm text-muted-foreground">Pedido #{sale.code}</p>
         </DialogHeader>
 
-        <div className="flex gap-1 mb-3">
-          {tabs.map(tab => (
-            <button
-              key={tab.value}
-              onClick={() => setReceiptType(tab.value)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all border ${
-                receiptType === tab.value
-                  ? 'bg-primary/10 text-primary border-primary/30'
-                  : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
+        <div className="space-y-2">
+          {receiptOptions.map(opt => (
+            <div key={opt.value} className="flex items-center gap-3 bg-secondary border border-border rounded-lg p-3">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {opt.icon}
+                <span className="text-sm font-medium text-foreground">{opt.label}</span>
+              </div>
+              <div className="flex gap-1.5 shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs h-8"
+                  onClick={() => setActivePreview(activePreview === opt.value ? null : opt.value)}
+                >
+                  {activePreview === opt.value ? 'Ocultar' : 'Visualizar'}
+                </Button>
+                <Button
+                  size="sm"
+                  className="text-xs h-8 gap-1"
+                  onClick={() => printReceipt(opt.value)}
+                >
+                  <Printer className="w-3.5 h-3.5" /> Imprimir
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
 
-        <div className="font-mono text-[11px] leading-relaxed bg-secondary border border-border text-foreground p-4 rounded-lg whitespace-pre-wrap max-h-[50vh] overflow-y-auto">
-          {getContent()}
-        </div>
+        {activePreview && (
+          <div className="font-mono text-[11px] leading-relaxed bg-secondary border border-border text-foreground p-4 rounded-lg whitespace-pre-wrap max-h-[35vh] overflow-y-auto animate-fade-in">
+            {getContent(activePreview)}
+          </div>
+        )}
 
-        <Button onClick={printReceipt} className="w-full bg-primary hover:bg-primary/90 gap-1.5 font-semibold">
-          <Printer className="w-4 h-4" /> Imprimir
+        <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
+          Não imprimir
         </Button>
       </DialogContent>
     </Dialog>

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -22,17 +23,44 @@ interface AuthState {
 
   setCompanyName: (name: string) => void;
   setCnpj: (cnpj: string) => void;
+
+  loadFromDb: () => Promise<void>;
+}
+
+async function saveToDb(key: string, value: string) {
+  try {
+    await supabase.from('app_settings').upsert({ key, value: JSON.stringify(value) }, { onConflict: 'key' });
+  } catch (_) { /* silent */ }
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       isAuthenticated: false,
-      cnpj: '00.000.000/0001-00',
-      password: 'admin123',
-      pin: '1234', // 4 digits only
+      cnpj: '',
+      password: '',
+      pin: '',
       pinUnlocked: false,
       companyName: 'Bella Pizza',
+
+      loadFromDb: async () => {
+        try {
+          const { data } = await supabase
+            .from('app_settings')
+            .select('key, value')
+            .in('key', ['auth_password', 'auth_pin', 'auth_cnpj', 'company_name']);
+          if (data) {
+            const map: Record<string, string> = {};
+            data.forEach(r => { map[r.key] = typeof r.value === 'string' ? r.value : JSON.parse(r.value as string); });
+            const updates: Partial<AuthState> = {};
+            if (map.auth_password) updates.password = map.auth_password;
+            if (map.auth_pin) updates.pin = map.auth_pin;
+            if (map.auth_cnpj) updates.cnpj = map.auth_cnpj;
+            if (map.company_name) updates.companyName = map.company_name;
+            set(updates);
+          }
+        } catch (_) { /* silent */ }
+      },
 
       login: (cnpj, password) => {
         const state = get();
@@ -73,6 +101,7 @@ export const useAuthStore = create<AuthState>()(
       changePassword: (currentPassword, newPassword) => {
         if (currentPassword === get().password) {
           set({ password: newPassword });
+          saveToDb('auth_password', newPassword);
           return true;
         }
         return false;
@@ -81,13 +110,21 @@ export const useAuthStore = create<AuthState>()(
       changePin: (currentPin, newPin) => {
         if (currentPin === get().pin) {
           set({ pin: newPin });
+          saveToDb('auth_pin', newPin);
           return true;
         }
         return false;
       },
 
-      setCompanyName: (name) => set({ companyName: name }),
-      setCnpj: (cnpj) => set({ cnpj }),
+      setCompanyName: (name) => {
+        set({ companyName: name });
+        saveToDb('company_name', name);
+      },
+
+      setCnpj: (cnpj) => {
+        set({ cnpj });
+        saveToDb('auth_cnpj', cnpj);
+      },
     }),
     { name: 'bella-pizza-auth' }
   )
