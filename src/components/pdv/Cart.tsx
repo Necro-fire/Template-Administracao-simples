@@ -225,9 +225,15 @@ export function Cart() {
                 <div className="space-y-2 bg-secondary/50 border border-border rounded-lg p-2.5">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Endereço de Entrega</p>
                   <Input
+                    value={deliveryAddress.name || ''}
+                    onChange={(e) => setDeliveryAddress({ ...deliveryAddress, name: e.target.value })}
+                    placeholder="Nome (opcional)"
+                    className="bg-card border-border h-7 text-xs"
+                  />
+                  <Input
                     value={deliveryAddress.phone}
                     onChange={(e) => setDeliveryAddress({ ...deliveryAddress, phone: maskPhone(e.target.value) })}
-                    placeholder="Telefone *"
+                    placeholder="Telefone (opcional)"
                     className="bg-card border-border h-7 text-xs"
                   />
                   <Input
