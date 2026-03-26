@@ -63,7 +63,7 @@ export const useAuthStore = create<AuthState>()(
             .in('key', ['auth_password', 'auth_pin', 'auth_cnpj', 'company_name']);
           if (data) {
             const map: Record<string, string> = {};
-            data.forEach(r => { map[r.key] = typeof r.value === 'string' ? r.value : String(r.value); });
+            data.forEach(r => { map[r.key] = parseDbValue(r.value); });
             const updates: Partial<AuthState> = {};
             if (map.auth_password) updates.password = map.auth_password;
             if (map.auth_pin) updates.pin = map.auth_pin;
