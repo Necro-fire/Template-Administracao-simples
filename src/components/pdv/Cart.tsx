@@ -104,7 +104,7 @@ export function Cart() {
     return label;
   };
 
-  if (cart.length === 0 && !showReceiptDialog) {
+  if (cart.length === 0 && !showReceiptConfirm) {
     return (
       <div className="w-80 glass-card p-4 flex flex-col items-center justify-center gap-2 shrink-0">
         <span className="text-4xl">🛒</span>

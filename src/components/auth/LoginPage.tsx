@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { maskCNPJ } from '@/lib/format';
 import { Input } from '@/components/ui/input';
