@@ -65,7 +65,7 @@ interface AppState {
 
   sales: Sale[];
   nextSaleCode: number;
-  finalizeSale: (payments: PaymentSplit[], change: number, customerName: string, customerContact: string, observations: string[]) => Sale;
+  finalizeSale: (payments: PaymentSplit[], change: number, customerName: string, customerContact: string, observations: string[], deliveryMode?: import('@/types/pizzaria').DeliveryMode, deliveryAddress?: import('@/types/pizzaria').DeliveryAddress, deliveryFee?: number) => Sale;
   cancelSale: (saleId: string) => void;
 
   cashRegister: CashRegister | null;
@@ -124,7 +124,7 @@ export const useStore = create<AppState>()(
 
       sales: [],
       nextSaleCode: 1,
-      finalizeSale: (payments, change, customerName, customerContact, observations) => {
+      finalizeSale: (payments, change, customerName, customerContact, observations, deliveryMode, deliveryAddress, deliveryFee) => {
         const state = get();
         const total = state.cart.reduce((sum, i) => sum + i.calculatedPrice * i.quantity, 0);
         const sale: Sale = {
@@ -139,6 +139,9 @@ export const useStore = create<AppState>()(
           customerContact,
           observations,
           cancelled: false,
+          deliveryMode,
+          deliveryAddress,
+          deliveryFee,
         };
         const reg = state.cashRegister;
         set({

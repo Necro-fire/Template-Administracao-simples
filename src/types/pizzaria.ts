@@ -54,6 +54,19 @@ export interface PaymentSplit {
   amount: number;
 }
 
+export interface DeliveryAddress {
+  name?: string;
+  phone: string;
+  cep: string;
+  street: string;
+  number: string;
+  neighborhood: string;
+  complement?: string;
+  reference?: string;
+}
+
+export type DeliveryMode = 'retirada' | 'entrega';
+
 export interface CartItem {
   id: string;
   product: Product;
@@ -80,6 +93,9 @@ export interface Sale {
   observations: string[];
   cancelled: boolean;
   cancelledAt?: string;
+  deliveryMode?: DeliveryMode;
+  deliveryAddress?: DeliveryAddress;
+  deliveryFee?: number;
 }
 
 export type MovementType = 'entry' | 'exit' | 'sangria' | 'reforco';
@@ -122,7 +138,7 @@ export interface PizzaBorder {
   price: number;
   category: BorderCategory;
   active: boolean;
-  freeSizes: PizzaSize[]; // sizes where this border is free
+  freeSizes: PizzaSize[];
 }
 
 export interface FreeBorderRule {
