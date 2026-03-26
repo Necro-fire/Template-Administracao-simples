@@ -93,15 +93,19 @@ export default function Produtos() {
 
   // Soda handlers
   const openNewSoda = () => { setSodaForm({ ...emptySoda }); setEditingSoda(null); setSodaDialogOpen(true); };
-  const openEditSoda = (s: SodaProduct) => { setSodaForm({ name: s.name, icon: s.icon, price: s.price, cost: s.cost, active: s.active, size: s.size }); setEditingSoda(s); setSodaDialogOpen(true); };
+  const openEditSoda = (s: SodaProduct) => { setSodaForm({ name: s.name, icon: s.icon, price: s.price, cost: s.cost, active: s.active, size: s.size, freeSizes: [...(s.freeSizes || [])] }); setEditingSoda(s); setSodaDialogOpen(true); };
   const handleSaveSoda = async () => {
     if (!sodaForm.name.trim()) { toast.error('Nome obrigatório'); return; }
-    const p: SodaProduct = { id: editingSoda?.id || crypto.randomUUID(), ...sodaForm, freeSizes: [] };
+    const p: SodaProduct = { id: editingSoda?.id || crypto.randomUUID(), ...sodaForm };
     if (editingSoda) { await updateSodaProduct(p); toast.success('Refrigerante atualizado'); }
     else { await addSodaProduct(p); toast.success('Refrigerante adicionado'); }
     setSodaDialogOpen(false);
   };
   const confirmDeleteSoda = async () => { if (deleteSodaConfirm) { await deleteSodaProduct(deleteSodaConfirm); toast.success('Refrigerante removido'); setDeleteSodaConfirm(null); } };
+  const toggleSodaFreeSize = (sz: PizzaSize) => {
+    const current = sodaForm.freeSizes || [];
+    setSodaForm({ ...sodaForm, freeSizes: current.includes(sz) ? current.filter(s => s !== sz) : [...current, sz] });
+  };
 
   return (
     <PinGuard title="Produtos">
