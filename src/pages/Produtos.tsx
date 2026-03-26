@@ -262,6 +262,8 @@ export default function Produtos() {
               ))}
               {sodaProducts.length === 0 && <p className="col-span-full text-muted-foreground text-center py-12">Nenhum refrigerante cadastrado</p>}
             </div>
+          </TabsContent>
+
           {/* ===== REGRAS DE GRÁTIS TAB ===== */}
           <TabsContent value="regras" className="space-y-6 mt-4">
             {/* Free Border Rules */}
