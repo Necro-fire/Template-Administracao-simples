@@ -1,15 +1,17 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PinGuard } from '@/components/PinGuard';
-import { DateFilter, filterByDate } from '@/components/DateFilter';
+import { DateFilter, DatePreset } from '@/components/DateFilter';
 import { useStore } from '@/store/useStore';
 import { formatCurrency } from '@/lib/format';
-import { startOfDay, endOfDay } from 'date-fns';
+import { endOfDay, format, startOfDay } from 'date-fns';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, CartesianGrid, Legend,
-  AreaChart, Area,
+  LineChart, Line, ReferenceDot,
 } from 'recharts';
 import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, CreditCard, Receipt, Pizza } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Sale } from '@/types/pizzaria';
 
 const CHART_COLORS = [
   'hsl(var(--primary))', 'hsl(var(--success))', 'hsl(var(--info))',
@@ -31,13 +33,92 @@ const EmptyState = ({ message }: { message: string }) => (
 );
 
 export default function Dashboard() {
-  const { sales, cashRegister, products } = useStore();
+  const { cashRegister, products } = useStore();
   const [dateRange, setDateRange] = useState({ start: startOfDay(new Date()), end: endOfDay(new Date()) });
+  const [datePreset, setDatePreset] = useState<DatePreset>('today');
+  const [periodSales, setPeriodSales] = useState<Sale[]>([]);
+  const [loadingPeriod, setLoadingPeriod] = useState(false);
 
-  const filtered = useMemo(
-    () => filterByDate(sales.filter(s => !s.cancelled), dateRange.start, dateRange.end),
-    [sales, dateRange]
-  );
+  useEffect(() => {
+    let active = true;
+
+    const fetchPeriodSales = async () => {
+      setLoadingPeriod(true);
+
+      const { data: salesRows, error: salesError } = await supabase
+        .from('sales')
+        .select('*')
+        .gte('created_at', dateRange.start.toISOString())
+        .lte('created_at', dateRange.end.toISOString())
+        .order('created_at', { ascending: true })
+        .limit(1000);
+
+      if (salesError) {
+        if (active) {
+          setPeriodSales([]);
+          setLoadingPeriod(false);
+        }
+        return;
+      }
+
+      const saleIds = (salesRows || []).map((sale) => sale.id);
+      const { data: saleItemsRows, error: itemsError } = saleIds.length > 0
+        ? await supabase.from('sale_items').select('*').in('sale_id', saleIds)
+        : { data: [], error: null };
+
+      if (itemsError) {
+        if (active) {
+          setPeriodSales([]);
+          setLoadingPeriod(false);
+        }
+        return;
+      }
+
+      const mappedSales: Sale[] = (salesRows || []).map((sale) => ({
+        id: sale.id,
+        code: sale.code,
+        total: Number(sale.total),
+        change: Number(sale.change_amount) || 0,
+        date: sale.created_at,
+        customerName: sale.customer_name || '',
+        customerContact: sale.customer_contact || '',
+        observations: sale.observations || [],
+        cancelled: sale.cancelled || false,
+        cancelledAt: sale.cancelled_at || undefined,
+        deliveryMode: sale.delivery_mode,
+        deliveryAddress: sale.delivery_address as any,
+        deliveryFee: Number(sale.delivery_fee) || 0,
+        payments: (sale.payments || []) as any,
+        items: (saleItemsRows || [])
+          .filter((item) => item.sale_id === sale.id)
+          .map((item) => ({
+            id: item.id,
+            product: item.product_data as any,
+            quantity: item.quantity || 1,
+            observations: item.observations || [],
+            pizzaSize: item.pizza_size || undefined,
+            secondFlavor: item.second_flavor as any,
+            calculatedPrice: Number(item.calculated_price),
+            border: item.border_data as any,
+            borderFree: item.border_free || false,
+            freeSoda: item.free_soda as any,
+          })),
+      }));
+
+      if (active) {
+        setPeriodSales(mappedSales.filter((sale) => !sale.cancelled));
+        setLoadingPeriod(false);
+      }
+    };
+
+    fetchPeriodSales();
+
+    return () => {
+      active = false;
+    };
+  }, [dateRange.end, dateRange.start]);
+
+  const filtered = useMemo(() => periodSales, [periodSales]);
 
   const totalRevenue = filtered.reduce((s, sale) => s + sale.total, 0);
   const totalCost = filtered.reduce((s, sale) => s + sale.items.reduce((c, i) => {
@@ -60,19 +141,34 @@ export default function Dashboard() {
   }, [filtered]);
 
   const dailyData = useMemo(() => {
-    const map: Record<string, { revenue: number; cost: number }> = {};
+    const byHour = datePreset === 'today' || datePreset === 'yesterday';
+    const map: Record<string, { revenue: number; cost: number; sortKey: string }> = {};
     filtered.forEach(s => {
-      const d = new Date(s.date).toLocaleDateString('pt-BR');
-      if (!map[d]) map[d] = { revenue: 0, cost: 0 };
-      map[d].revenue += s.total;
-      map[d].cost += s.items.reduce((c, i) => {
+      const saleDate = new Date(s.date);
+      const key = byHour ? format(saleDate, 'dd/MM HH:00') : format(saleDate, 'dd/MM');
+      const sortKey = byHour ? format(saleDate, 'yyyy-MM-dd HH:00') : format(saleDate, 'yyyy-MM-dd');
+      if (!map[key]) map[key] = { revenue: 0, cost: 0, sortKey };
+      map[key].revenue += s.total;
+      map[key].cost += s.items.reduce((c, i) => {
         const cost = i.product.category === 'pizza' && i.pizzaSize && i.product.pizzaCosts
           ? i.product.pizzaCosts[i.pizzaSize] : i.product.cost;
         return c + (cost || 0) * i.quantity;
       }, 0);
     });
-    return Object.entries(map).map(([date, v]) => ({ date, ...v, profit: v.revenue - v.cost }));
-  }, [filtered]);
+    return Object.entries(map)
+      .map(([date, v]) => ({ date, ...v, profit: v.revenue - v.cost }))
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+  }, [datePreset, filtered]);
+
+  const extrema = useMemo(() => {
+    if (dailyData.length === 0) {
+      return { max: null as null | { date: string; revenue: number }, min: null as null | { date: string; revenue: number } };
+    }
+
+    const max = dailyData.reduce((acc, point) => point.revenue > acc.revenue ? point : acc, dailyData[0]);
+    const min = dailyData.reduce((acc, point) => point.revenue < acc.revenue ? point : acc, dailyData[0]);
+    return { max, min };
+  }, [dailyData]);
 
   const paymentData = useMemo(() => {
     const map: Record<string, number> = {};
@@ -113,7 +209,7 @@ export default function Dashboard() {
     debito: 'Débito', credito: 'Crédito',
   };
 
-  const noData = filtered.length === 0;
+  const noData = !loadingPeriod && filtered.length === 0;
 
   return (
     <PinGuard title="Dashboard">
@@ -129,7 +225,10 @@ export default function Dashboard() {
               <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'bg-success' : 'bg-destructive'}`} />
               Caixa {isOpen ? 'Aberto' : 'Fechado'}
             </div>
-            <DateFilter onFilter={(s, e) => setDateRange({ start: s, end: e })} />
+            <DateFilter onFilter={(s, e, p) => {
+              setDateRange({ start: s, end: e });
+              if (p) setDatePreset(p);
+            }} />
           </div>
         </div>
 
@@ -153,27 +252,47 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 bg-card border border-border rounded-lg p-5">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Receita & Lucro</h3>
-            {dailyData.length > 0 ? (
+            {loadingPeriod ? (
+              <EmptyState message="Carregando dados do período..." />
+            ) : dailyData.length > 0 ? (
               <ResponsiveContainer width="100%" height={240}>
-                <AreaChart data={dailyData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                  <defs>
-                    <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="gradProfit" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
+                <LineChart data={dailyData} margin={{ top: 8, right: 12, left: 2, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} domain={['auto', 'auto']} allowDataOverflow={false} />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                    axisLine={false}
+                    tickLine={false}
+                    domain={['dataMin - 5', 'dataMax + 5']}
+                    allowDataOverflow={false}
+                  />
                   <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={tooltipStyle} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Area type="monotone" dataKey="revenue" name="Receita" stroke="hsl(var(--primary))" fill="url(#gradRevenue)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="profit" name="Lucro" stroke="hsl(var(--success))" fill="url(#gradProfit)" strokeWidth={2} />
-                </AreaChart>
+                  <Line type="monotone" dataKey="revenue" name="Receita" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="profit" name="Lucro" stroke="hsl(var(--success))" strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                  {extrema.max && (
+                    <ReferenceDot
+                      x={extrema.max.date}
+                      y={extrema.max.revenue}
+                      r={4}
+                      fill="hsl(var(--primary))"
+                      stroke="hsl(var(--card))"
+                      strokeWidth={2}
+                      label={{ value: 'Máx', position: 'top', fill: 'hsl(var(--primary))', fontSize: 10 }}
+                    />
+                  )}
+                  {extrema.min && (
+                    <ReferenceDot
+                      x={extrema.min.date}
+                      y={extrema.min.revenue}
+                      r={4}
+                      fill="hsl(var(--warning))"
+                      stroke="hsl(var(--card))"
+                      strokeWidth={2}
+                      label={{ value: 'Mín', position: 'bottom', fill: 'hsl(var(--warning))', fontSize: 10 }}
+                    />
+                  )}
+                </LineChart>
               </ResponsiveContainer>
             ) : (
               <EmptyState message="Nenhum dado encontrado neste período" />
