@@ -17,8 +17,8 @@ interface AuthState {
   recoverPasswordWithPin: (pin: string) => string | null;
   recoverPinWithCredentials: (cnpj: string, password: string) => string | null;
 
-  changePassword: (pin: string, newPassword: string) => boolean;
-  changePin: (password: string, newPin: string) => boolean;
+  changePassword: (currentPassword: string, newPassword: string) => boolean;
+  changePin: (currentPin: string, newPin: string) => boolean;
 
   setCompanyName: (name: string) => void;
   setCnpj: (cnpj: string) => void;
