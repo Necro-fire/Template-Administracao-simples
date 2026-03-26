@@ -70,16 +70,16 @@ export const useAuthStore = create<AuthState>()(
         return null;
       },
 
-      changePassword: (pin, newPassword) => {
-        if (pin === get().pin) {
+      changePassword: (currentPassword, newPassword) => {
+        if (currentPassword === get().password) {
           set({ password: newPassword });
           return true;
         }
         return false;
       },
 
-      changePin: (password, newPin) => {
-        if (password === get().password) {
+      changePin: (currentPin, newPin) => {
+        if (currentPin === get().pin) {
           set({ pin: newPin });
           return true;
         }
