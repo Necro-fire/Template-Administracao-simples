@@ -150,8 +150,12 @@ export function PizzaBuilder({ open, onClose, initialFlavorId }: PizzaBuilderPro
     { value: 'tradicional', label: 'Tradicional' },
     { value: 'especial1', label: 'Especial 1' },
     { value: 'especial2', label: 'Especial 2' },
+    { value: 'doce', label: '🍫 Doce' },
     { value: 'bordas', label: '🧀 Bordas' },
   ];
+
+  const isDoce = flavor1?.pizzaType === 'doce';
+  const showBordasTab = categoryFilter === 'bordas' && !isDoce;
 
   const showBordas = categoryFilter === 'bordas';
 
