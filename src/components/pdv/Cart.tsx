@@ -63,11 +63,10 @@ export function Cart() {
 
   const handleFinalize = () => {
     if (!guardCaixa()) return;
-    if (!customerName.trim()) { toast.error('Informe o nome do cliente'); return; }
     if (totalPaid < total) { toast.error('Pagamento insuficiente'); return; }
     if (deliveryMode === 'entrega') {
-      if (!deliveryAddress.phone || !deliveryAddress.street || !deliveryAddress.number || !deliveryAddress.neighborhood) {
-        toast.error('Preencha os campos obrigatórios do endereço');
+      if (!deliveryAddress.street.trim() || !deliveryAddress.neighborhood.trim()) {
+        toast.error('Preencha Rua e Bairro para entrega');
         return;
       }
     }
