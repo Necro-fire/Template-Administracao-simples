@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { startOfDay, startOfWeek, startOfMonth, startOfYear, isWithinInterval, endOfDay } from 'date-fns';
+import { startOfDay, endOfDay, subDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
-export type DatePreset = 'today' | '7days' | 'month' | 'year' | 'custom';
+export type DatePreset = 'today' | 'yesterday' | '7days' | '30days' | 'custom';
 
 interface DateFilterProps {
   onFilter: (start: Date, end: Date) => void;
@@ -18,28 +19,31 @@ export function DateFilter({ onFilter }: DateFilterProps) {
     setPreset(p);
     const now = new Date();
     let start: Date;
+    let end: Date = endOfDay(now);
     switch (p) {
       case 'today': start = startOfDay(now); break;
-      case '7days': start = startOfWeek(now); start.setDate(now.getDate() - 7); break;
-      case 'month': start = startOfMonth(now); break;
-      case 'year': start = startOfYear(now); break;
+      case 'yesterday': start = startOfDay(subDays(now, 1)); end = endOfDay(subDays(now, 1)); break;
+      case '7days': start = startOfDay(subDays(now, 6)); break;
+      case '30days': start = startOfDay(subDays(now, 29)); break;
       case 'custom': return;
       default: start = startOfDay(now);
     }
-    onFilter(start, endOfDay(now));
+    onFilter(start, end);
   };
 
   const applyCustom = () => {
-    if (customStart && customEnd) {
-      onFilter(new Date(customStart), endOfDay(new Date(customEnd)));
-    }
+    if (!customStart || !customEnd) { toast.error('Selecione data inicial e final'); return; }
+    const s = new Date(customStart + 'T00:00:00');
+    const e = new Date(customEnd + 'T23:59:59');
+    if (e < s) { toast.error('Data final não pode ser menor que a inicial'); return; }
+    onFilter(s, endOfDay(e));
   };
 
   const presets: { value: DatePreset; label: string }[] = [
     { value: 'today', label: 'Hoje' },
+    { value: 'yesterday', label: 'Ontem' },
     { value: '7days', label: '7 Dias' },
-    { value: 'month', label: 'Mês' },
-    { value: 'year', label: 'Ano' },
+    { value: '30days', label: '30 Dias' },
     { value: 'custom', label: 'Personalizado' },
   ];
 
@@ -71,6 +75,6 @@ export function DateFilter({ onFilter }: DateFilterProps) {
 export function filterByDate<T extends { date: string }>(items: T[], start: Date, end: Date): T[] {
   return items.filter((item) => {
     const d = new Date(item.date);
-    return isWithinInterval(d, { start, end });
+    return d >= start && d <= end;
   });
 }
