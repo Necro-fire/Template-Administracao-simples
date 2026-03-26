@@ -269,7 +269,7 @@ export function PizzaBuilder({ open, onClose, initialFlavorId }: PizzaBuilderPro
                     <div className="flex items-center justify-between gap-2">
                       <div>
                         <span className="text-sm font-semibold">{border.name}</span>
-                        <span className="text-[10px] text-muted-foreground ml-2 capitalize">{border.category}</span>
+                        <span className="text-[10px] text-muted-foreground ml-2">{formatCurrency(border.price)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         {free ? (
