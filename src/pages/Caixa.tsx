@@ -7,18 +7,26 @@ import { startOfDay, endOfDay } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { ProfessionalAlert } from '@/components/ui/professional-alert';
+import { CloseRegisterDialog, type CloseData } from '@/components/caixa/CloseRegisterDialog';
 import {
   DollarSign, ArrowDownCircle, ArrowUpCircle, Clock, TrendingUp,
   Wallet, History, ShoppingCart, Lock, Unlock, Timer
 } from 'lucide-react';
 
 export default function Caixa() {
-  const { cashRegister, cashHistory, openRegister, closeRegister, addMovement, deleteMovement } = useStore();
+  const { cashRegister, cashHistory, openRegister, closeRegister, addMovement, deleteMovement, addAuditLog } = useStore();
   const [initialAmount, setInitialAmount] = useState('');
   const [movType, setMovType] = useState<'reforco' | 'sangria'>('reforco');
   const [movAmount, setMovAmount] = useState('');
   const [movDesc, setMovDesc] = useState('');
   const [dateRange, setDateRange] = useState({ start: startOfDay(new Date()), end: endOfDay(new Date()) });
+
+  // Alert states
+  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const [deleteAlertId, setDeleteAlertId] = useState<string | null>(null);
+  const [errorAlert, setErrorAlert] = useState<string | null>(null);
+  const [successAlert, setSuccessAlert] = useState<string | null>(null);
 
   const isOpen = cashRegister && !cashRegister.closedAt;
 
@@ -29,18 +37,44 @@ export default function Caixa() {
 
   const handleOpen = async () => {
     const a = parseFloat(initialAmount);
-    if (isNaN(a) || a < 0) { toast.error('Valor inválido'); return; }
-    await openRegister(a); setInitialAmount(''); toast.success('Caixa aberto!');
+    if (isNaN(a) || a < 0) { setErrorAlert('Informe um valor inicial válido para abrir o caixa.'); return; }
+    await openRegister(a);
+    setInitialAmount('');
+    setSuccessAlert('Caixa aberto com sucesso!');
   };
-  const handleClose = async () => {
-    if (!window.confirm('Fechar o caixa?')) return;
-    await closeRegister(); toast.success('Caixa fechado!');
+
+  const handleClose = async (data: CloseData) => {
+    const informedAmount = data.cashInRegister + data.cashToSafe + data.cardDebit + data.cardCredit + data.pix + data.online;
+    await closeRegister(informedAmount);
+    await addAuditLog('REGISTER_CLOSE_DETAIL', JSON.stringify({
+      cashInRegister: data.cashInRegister,
+      cashToSafe: data.cashToSafe,
+      cashForChange: data.cashForChange,
+      cardDebit: data.cardDebit,
+      cardCredit: data.cardCredit,
+      pix: data.pix,
+      online: data.online,
+      observations: data.observations,
+    }));
+    setCloseDialogOpen(false);
+    setSuccessAlert('Caixa fechado com sucesso! Dados salvos no histórico.');
   };
+
   const handleMovement = async () => {
+    if (!isOpen) { setErrorAlert('Caixa fechado. Abra o caixa para continuar.'); return; }
     const a = parseFloat(movAmount);
-    if (isNaN(a) || a <= 0) { toast.error('Valor inválido'); return; }
+    if (isNaN(a) || a <= 0) { setErrorAlert('Informe um valor válido para a movimentação.'); return; }
     await addMovement({ type: movType, amount: a, description: movDesc || movType, origin: 'manual' });
-    setMovAmount(''); setMovDesc(''); toast.success('Registrado');
+    setMovAmount(''); setMovDesc('');
+    setSuccessAlert('Movimentação registrada com sucesso!');
+  };
+
+  const handleDeleteMovement = async () => {
+    if (deleteAlertId) {
+      await deleteMovement(deleteAlertId);
+      setDeleteAlertId(null);
+      setSuccessAlert('Movimentação removida.');
+    }
   };
 
   const salesTotal = cashRegister ? cashRegister.sales.filter(s => !s.cancelled).reduce((s, sale) => s + sale.total, 0) : 0;
@@ -89,7 +123,7 @@ export default function Caixa() {
                 </Button>
               </div>
             ) : (
-              <Button onClick={handleClose} variant="outline" size="sm" className="border-destructive/30 text-destructive hover:bg-destructive/10 h-9 text-xs">
+              <Button onClick={() => setCloseDialogOpen(true)} variant="outline" size="sm" className="border-destructive/30 text-destructive hover:bg-destructive/10 h-9 text-xs">
                 Fechar Caixa
               </Button>
             )}
@@ -161,7 +195,7 @@ export default function Caixa() {
                               <span className={`font-semibold text-xs tabular-nums ${m._type === 'entry' ? 'text-success' : 'text-destructive'}`}>
                                 {m._type === 'entry' ? '+' : '-'}{formatCurrency(m.amount)}
                               </span>
-                              <button onClick={async () => { await deleteMovement(m.id); toast.success('Removida'); }}
+                              <button onClick={() => setDeleteAlertId(m.id)}
                                 className="opacity-0 group-hover:opacity-100 text-destructive text-xs transition-opacity">✕</button>
                             </div>
                           </div>
@@ -237,6 +271,44 @@ export default function Caixa() {
           </div>
         </div>
       </div>
+
+      {/* Professional Dialogs */}
+      <CloseRegisterDialog open={closeDialogOpen} onClose={() => setCloseDialogOpen(false)} onConfirm={handleClose} />
+
+      {/* Delete movement alert */}
+      <ProfessionalAlert
+        open={!!deleteAlertId}
+        onClose={() => setDeleteAlertId(null)}
+        variant="warning"
+        title="Remover movimentação?"
+        description="Esta ação não pode ser desfeita. A movimentação será excluída permanentemente."
+        confirmLabel="Remover"
+        onConfirm={handleDeleteMovement}
+      />
+
+      {/* Error alert */}
+      <ProfessionalAlert
+        open={!!errorAlert}
+        onClose={() => setErrorAlert(null)}
+        variant="error"
+        title="Operação bloqueada"
+        description={errorAlert || ''}
+        showCancel={false}
+        confirmLabel="Entendi"
+        onConfirm={() => setErrorAlert(null)}
+      />
+
+      {/* Success alert */}
+      <ProfessionalAlert
+        open={!!successAlert}
+        onClose={() => setSuccessAlert(null)}
+        variant="success"
+        title="Operação concluída"
+        description={successAlert || ''}
+        showCancel={false}
+        confirmLabel="OK"
+        onConfirm={() => setSuccessAlert(null)}
+      />
     </PinGuard>
   );
 }

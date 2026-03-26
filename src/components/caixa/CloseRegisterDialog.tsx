@@ -41,15 +41,17 @@ export function CloseRegisterDialog({ open, onClose, onConfirm }: CloseRegisterD
   const [online, setOnline] = useState('');
   const [observations, setObservations] = useState('');
 
-  if (!cashRegister) return null;
+  const salesTotal = useMemo(() => {
+    if (!cashRegister) return 0;
+    return cashRegister.sales.filter(s => !s.cancelled).reduce((s, sale) => s + sale.total, 0);
+  }, [cashRegister]);
 
-  const salesTotal = cashRegister.sales.filter(s => !s.cancelled).reduce((s, sale) => s + sale.total, 0);
-  const entriesTotal = cashRegister.entries.reduce((s, e) => s + e.amount, 0);
-  const exitsTotal = cashRegister.exits.reduce((s, e) => s + e.amount, 0);
-  const expectedBalance = cashRegister.initialAmount + salesTotal + entriesTotal - exitsTotal;
+  const entriesTotal = useMemo(() => cashRegister?.entries.reduce((s, e) => s + e.amount, 0) ?? 0, [cashRegister]);
+  const exitsTotal = useMemo(() => cashRegister?.exits.reduce((s, e) => s + e.amount, 0) ?? 0, [cashRegister]);
+  const expectedBalance = (cashRegister?.initialAmount ?? 0) + salesTotal + entriesTotal - exitsTotal;
 
-  // Payment totals from system
   const systemPayments = useMemo(() => {
+    if (!cashRegister) return {};
     const map: Record<string, number> = {};
     cashRegister.sales.filter(s => !s.cancelled).forEach(sale => {
       sale.payments.forEach(p => {
@@ -58,6 +60,8 @@ export function CloseRegisterDialog({ open, onClose, onConfirm }: CloseRegisterD
     });
     return map;
   }, [cashRegister]);
+
+  if (!cashRegister || !open) return null;
 
   const vals = {
     cashInRegister: parseCurrency(cashInRegister),
