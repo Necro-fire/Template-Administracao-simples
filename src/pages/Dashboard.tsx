@@ -7,9 +7,9 @@ import { endOfDay, format, startOfDay } from 'date-fns';
 import {
   XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, CartesianGrid, Legend,
-  LineChart, Line, ReferenceDot,
+  BarChart, Bar,
 } from 'recharts';
-import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, CreditCard, Receipt, Pizza } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, CreditCard, Receipt, Pizza, Beef, Wine, UtensilsCrossed } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { PizzaSize, Sale } from '@/types/pizzaria';
 
@@ -160,15 +160,6 @@ export default function Dashboard() {
       .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
   }, [datePreset, filtered]);
 
-  const extrema = useMemo(() => {
-    if (dailyData.length === 0) {
-      return { max: null as null | { date: string; revenue: number }, min: null as null | { date: string; revenue: number } };
-    }
-
-    const max = dailyData.reduce((acc, point) => point.revenue > acc.revenue ? point : acc, dailyData[0]);
-    const min = dailyData.reduce((acc, point) => point.revenue < acc.revenue ? point : acc, dailyData[0]);
-    return { max, min };
-  }, [dailyData]);
 
   const paymentData = useMemo(() => {
     const map: Record<string, number> = {};
@@ -198,6 +189,45 @@ export default function Dashboard() {
       if (i.product.category === 'pizza' && i.secondFlavor) {
         const key = `${i.product.name} / ${i.secondFlavor.name}`;
         if (!map[key]) map[key] = { name: key, qty: 0 };
+        map[key].qty += i.quantity;
+      }
+    }));
+    return Object.values(map).sort((a, b) => b.qty - a.qty).slice(0, 3);
+  }, [filtered]);
+
+  // Top hamburgers
+  const topHamburgers = useMemo(() => {
+    const map: Record<string, { name: string; qty: number }> = {};
+    filtered.forEach(s => s.items.forEach(i => {
+      if (i.product.category === 'hamburguer') {
+        const key = i.product.id;
+        if (!map[key]) map[key] = { name: i.product.name, qty: 0 };
+        map[key].qty += i.quantity;
+      }
+    }));
+    return Object.values(map).sort((a, b) => b.qty - a.qty).slice(0, 3);
+  }, [filtered]);
+
+  // Top beverages
+  const topBebidas = useMemo(() => {
+    const map: Record<string, { name: string; qty: number }> = {};
+    filtered.forEach(s => s.items.forEach(i => {
+      if (i.product.category === 'bebida') {
+        const key = i.product.id;
+        if (!map[key]) map[key] = { name: i.product.name, qty: 0 };
+        map[key].qty += i.quantity;
+      }
+    }));
+    return Object.values(map).sort((a, b) => b.qty - a.qty).slice(0, 3);
+  }, [filtered]);
+
+  // Top portions
+  const topPorcoes = useMemo(() => {
+    const map: Record<string, { name: string; qty: number }> = {};
+    filtered.forEach(s => s.items.forEach(i => {
+      if (i.product.category === 'porcao') {
+        const key = i.product.id;
+        if (!map[key]) map[key] = { name: i.product.name, qty: 0 };
         map[key].qty += i.quantity;
       }
     }));
@@ -256,43 +286,21 @@ export default function Dashboard() {
               <EmptyState message="Carregando dados do período..." />
             ) : dailyData.length > 0 ? (
               <ResponsiveContainer width="100%" height={240}>
-                <LineChart data={dailyData} margin={{ top: 8, right: 12, left: 2, bottom: 4 }}>
+                <BarChart data={dailyData} margin={{ top: 8, right: 12, left: 2, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
                   <YAxis
                     tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                     axisLine={false}
                     tickLine={false}
-                    domain={['dataMin - 5', 'dataMax + 5']}
+                    domain={['auto', 'auto']}
                     allowDataOverflow={false}
                   />
                   <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={tooltipStyle} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Line type="monotone" dataKey="revenue" name="Receita" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="profit" name="Lucro" stroke="hsl(var(--success))" strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 4 }} />
-                  {extrema.max && (
-                    <ReferenceDot
-                      x={extrema.max.date}
-                      y={extrema.max.revenue}
-                      r={4}
-                      fill="hsl(var(--primary))"
-                      stroke="hsl(var(--card))"
-                      strokeWidth={2}
-                      label={{ value: 'Máx', position: 'top', fill: 'hsl(var(--primary))', fontSize: 10 }}
-                    />
-                  )}
-                  {extrema.min && (
-                    <ReferenceDot
-                      x={extrema.min.date}
-                      y={extrema.min.revenue}
-                      r={4}
-                      fill="hsl(var(--warning))"
-                      stroke="hsl(var(--card))"
-                      strokeWidth={2}
-                      label={{ value: 'Mín', position: 'bottom', fill: 'hsl(var(--warning))', fontSize: 10 }}
-                    />
-                  )}
-                </LineChart>
+                  <Bar dataKey="revenue" name="Receita" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="profit" name="Lucro" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             ) : (
               <EmptyState message="Nenhum dado encontrado neste período" />
@@ -317,48 +325,17 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Top Pizzas + Payments */}
+        {/* Rankings by Category + Payments */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Top Pizzas */}
+          {/* Rankings */}
           <div className="lg:col-span-2 bg-card border border-border rounded-lg p-5">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Pizza className="w-3.5 h-3.5" /> Pizzas Mais Vendidas
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* 1 Flavor */}
-              <div>
-                <p className="text-[11px] font-semibold text-foreground mb-2">🍕 Mais vendidas (1 sabor)</p>
-                {top1Flavor.length > 0 ? (
-                  <div className="space-y-1.5">
-                    {top1Flavor.map((p, i) => (
-                      <div key={p.name} className="flex items-center gap-2 bg-secondary/50 rounded-lg px-3 py-2 border border-border/50">
-                        <span className="text-xs font-bold text-primary w-5 text-center">{i + 1}º</span>
-                        <span className="text-xs font-medium flex-1 truncate">{p.name}</span>
-                        <span className="text-xs text-muted-foreground tabular-nums">{p.qty}x</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground py-4 text-center">Sem dados</p>
-                )}
-              </div>
-              {/* 2 Flavors */}
-              <div>
-                <p className="text-[11px] font-semibold text-foreground mb-2">🍕🍕 Mais vendidas (2 sabores)</p>
-                {top2Flavors.length > 0 ? (
-                  <div className="space-y-1.5">
-                    {top2Flavors.map((p, i) => (
-                      <div key={p.name} className="flex items-center gap-2 bg-secondary/50 rounded-lg px-3 py-2 border border-border/50">
-                        <span className="text-xs font-bold text-info w-5 text-center">{i + 1}º</span>
-                        <span className="text-xs font-medium flex-1 truncate">{p.name}</span>
-                        <span className="text-xs text-muted-foreground tabular-nums">{p.qty}x</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground py-4 text-center">Sem dados</p>
-                )}
-              </div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">🏆 Mais Vendidos por Categoria</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <RankingBlock title="🍕 Pizza (1 sabor)" items={top1Flavor} color="text-primary" />
+              <RankingBlock title="🍕🍕 Pizza (2 sabores)" items={top2Flavors} color="text-info" />
+              <RankingBlock title="🍔 Hambúrguer" items={topHamburgers} color="text-warning" />
+              <RankingBlock title="🥤 Bebida" items={topBebidas} color="text-success" />
+              <RankingBlock title="🍟 Porção" items={topPorcoes} color="text-primary" />
             </div>
           </div>
 
@@ -417,6 +394,27 @@ function KpiCard({ label, value, sub, icon, variant }: {
       </div>
       <p className={`text-2xl font-extrabold ${c.text} tabular-nums leading-tight`}>{value}</p>
       {sub && <p className="text-[10px] text-muted-foreground mt-1">{sub}</p>}
+    </div>
+  );
+}
+
+function RankingBlock({ title, items, color }: { title: string; items: { name: string; qty: number }[]; color: string }) {
+  return (
+    <div>
+      <p className="text-[11px] font-semibold text-foreground mb-2">{title}</p>
+      {items.length > 0 ? (
+        <div className="space-y-1.5">
+          {items.map((p, i) => (
+            <div key={p.name} className="flex items-center gap-2 bg-secondary/50 rounded-lg px-3 py-2 border border-border/50">
+              <span className={`text-xs font-bold ${color} w-5 text-center`}>{i + 1}º</span>
+              <span className="text-xs font-medium flex-1 truncate">{p.name}</span>
+              <span className="text-xs text-muted-foreground tabular-nums">{p.qty}x</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground py-4 text-center">Sem dados</p>
+      )}
     </div>
   );
 }
