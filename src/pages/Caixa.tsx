@@ -161,7 +161,7 @@ export default function Caixa() {
                               <span className={`font-semibold text-xs tabular-nums ${m._type === 'entry' ? 'text-success' : 'text-destructive'}`}>
                                 {m._type === 'entry' ? '+' : '-'}{formatCurrency(m.amount)}
                               </span>
-                              <button onClick={() => { deleteMovement(m.id); toast.success('Removida'); }}
+                              <button onClick={async () => { await deleteMovement(m.id); toast.success('Removida'); }}
                                 className="opacity-0 group-hover:opacity-100 text-destructive text-xs transition-opacity">✕</button>
                             </div>
                           </div>
