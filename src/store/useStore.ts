@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product, CartItem, Sale, CashRegister, CashMovement, PaymentSplit, AuditLog } from '@/types/pizzaria';
+import { Product, CartItem, Sale, CashRegister, CashMovement, PaymentSplit, AuditLog, PizzaSize, PizzaBorder, FreeBorderRule, FreeSodaRule } from '@/types/pizzaria';
 
 const DEMO_PRODUCTS: Product[] = [
   // Pizzas - Tradicional
@@ -36,6 +36,21 @@ const DEMO_PRODUCTS: Product[] = [
   { id: 'o1', name: 'Sobremesa do Dia', category: 'outros', icon: '🍰', price: 15, cost: 5, active: true },
 ];
 
+const DEMO_BORDERS: PizzaBorder[] = [
+  { id: 'bd1', name: 'Catupiry', price: 8, category: 'tradicional', active: true, freeSizes: ['G', 'GG'] },
+  { id: 'bd2', name: 'Cheddar', price: 8, category: 'tradicional', active: true, freeSizes: ['G', 'GG'] },
+  { id: 'bd3', name: 'Cream Cheese', price: 10, category: 'premium', active: true, freeSizes: ['GG'] },
+  { id: 'bd4', name: 'Chocolate', price: 10, category: 'premium', active: true, freeSizes: [] },
+  { id: 'bd5', name: 'Doce de Leite', price: 10, category: 'premium', active: true, freeSizes: [] },
+];
+
+const DEMO_SODAS: Product[] = [
+  { id: 'soda1', name: 'Coca-Cola 1L', category: 'bebida', icon: '🥤', price: 8, cost: 4, active: true },
+  { id: 'soda2', name: 'Guaraná 1L', category: 'bebida', icon: '🥤', price: 7, cost: 3.5, active: true },
+  { id: 'soda3', name: 'Fanta Laranja 1L', category: 'bebida', icon: '🥤', price: 7, cost: 3.5, active: true },
+  { id: 'soda4', name: 'Sprite 1L', category: 'bebida', icon: '🥤', price: 7, cost: 3.5, active: true },
+];
+
 interface AppState {
   products: Product[];
   addProduct: (p: Product) => void;
@@ -62,6 +77,22 @@ interface AppState {
 
   auditLogs: AuditLog[];
   addAuditLog: (action: string, details: string) => void;
+
+  // Borders
+  borders: PizzaBorder[];
+  addBorder: (b: PizzaBorder) => void;
+  updateBorder: (b: PizzaBorder) => void;
+  deleteBorder: (id: string) => void;
+
+  // Free rules
+  freeBorderRules: FreeBorderRule[];
+  setFreeBorderRules: (rules: FreeBorderRule[]) => void;
+  freeSodaRules: FreeSodaRule[];
+  setFreeSodaRules: (rules: FreeSodaRule[]) => void;
+
+  // Soda products for free soda
+  sodaProducts: Product[];
+  setSodaProducts: (products: Product[]) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -190,6 +221,28 @@ export const useStore = create<AppState>()(
             ...s.auditLogs,
           ].slice(0, 500),
         })),
+
+      // Borders
+      borders: DEMO_BORDERS,
+      addBorder: (b) => set((s) => ({ borders: [...s.borders, b] })),
+      updateBorder: (b) => set((s) => ({ borders: s.borders.map(x => x.id === b.id ? b : x) })),
+      deleteBorder: (id) => set((s) => ({ borders: s.borders.filter(x => x.id !== id) })),
+
+      // Free rules
+      freeBorderRules: [
+        { size: 'G', enabled: true },
+        { size: 'GG', enabled: true },
+      ],
+      setFreeBorderRules: (rules) => set({ freeBorderRules: rules }),
+      freeSodaRules: [
+        { size: 'G', enabled: false },
+        { size: 'GG', enabled: true },
+      ],
+      setFreeSodaRules: (rules) => set({ freeSodaRules: rules }),
+
+      // Soda products for free soda
+      sodaProducts: DEMO_SODAS,
+      setSodaProducts: (products) => set({ sodaProducts: products }),
     }),
     { name: 'bella-pizza-store' }
   )

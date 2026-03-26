@@ -1,5 +1,5 @@
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutDashboard, Package, Wallet, Receipt, Unlock, LogOut, Settings } from 'lucide-react';
+import { ShoppingCart, LayoutDashboard, Package, Wallet, Receipt, Unlock, LogOut, Settings, ShieldCheck } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useStore } from '@/store/useStore';
 import { useState } from 'react';
@@ -9,14 +9,8 @@ import { PasswordInput } from '@/components/ui/password-input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
 } from '@/components/ui/alert-dialog';
 
 const links = [
@@ -25,6 +19,7 @@ const links = [
   { to: '/produtos', label: 'Produtos', icon: Package },
   { to: '/caixa', label: 'Caixa', icon: Wallet },
   { to: '/vendas', label: 'Vendas', icon: Receipt },
+  { to: '/admin', label: 'Admin', icon: ShieldCheck },
 ];
 
 export function TopNav() {
@@ -39,7 +34,6 @@ export function TopNav() {
   const [settingsPassword, setSettingsPassword] = useState('');
   const [newValue, setNewValue] = useState('');
 
-  // Navigation confirmation alert
   const [navAlert, setNavAlert] = useState<{ to: string } | null>(null);
 
   const handleNavClick = (to: string, e: React.MouseEvent) => {
@@ -59,32 +53,21 @@ export function TopNav() {
   const handleChangePassword = () => {
     if (changePassword(settingsPin, newValue)) {
       toast.success('Senha alterada!');
-      setShowSettings(false);
-      setSettingsPin('');
-      setNewValue('');
-    } else {
-      toast.error('PIN incorreto');
-    }
+      setShowSettings(false); setSettingsPin(''); setNewValue('');
+    } else { toast.error('PIN incorreto'); }
   };
 
   const handleChangePin = () => {
-    if (newValue.length !== 4) {
-      toast.error('O PIN deve ter exatamente 4 dígitos');
-      return;
-    }
+    if (newValue.length !== 4) { toast.error('O PIN deve ter exatamente 4 dígitos'); return; }
     if (changePin(settingsPassword, newValue)) {
       toast.success('PIN alterado!');
-      setShowSettings(false);
-      setSettingsPassword('');
-      setNewValue('');
-    } else {
-      toast.error('Senha incorreta');
-    }
+      setShowSettings(false); setSettingsPassword(''); setNewValue('');
+    } else { toast.error('Senha incorreta'); }
   };
 
   return (
     <>
-      <nav className="h-12 bg-card border-b border-border flex items-center px-4 gap-1 shrink-0">
+      <nav className="h-12 bg-card border-b border-border flex items-center px-4 gap-1 shrink-0 shadow-sm">
         <span className="text-primary font-extrabold text-sm tracking-tight mr-5 flex items-center gap-1.5">
           🍕 {companyName}
         </span>
@@ -117,24 +100,20 @@ export function TopNav() {
               Caixa Aberto
             </span>
           )}
-
           {pinUnlocked && (
             <button onClick={lockPin} className="text-success hover:text-foreground transition-colors p-1" title="Bloquear PIN">
               <Unlock className="w-3.5 h-3.5" />
             </button>
           )}
-
           <button onClick={() => setShowSettings(true)} className="text-muted-foreground hover:text-foreground transition-colors p-1" title="Configurações">
             <Settings className="w-3.5 h-3.5" />
           </button>
-
           <button onClick={logout} className="text-muted-foreground hover:text-destructive transition-colors p-1" title="Sair">
             <LogOut className="w-3.5 h-3.5" />
           </button>
         </div>
       </nav>
 
-      {/* Navigation confirmation alert */}
       <AlertDialog open={!!navAlert} onOpenChange={(open) => !open && setNavAlert(null)}>
         <AlertDialogContent className="bg-card border-border max-w-sm">
           <AlertDialogHeader>
@@ -150,19 +129,12 @@ export function TopNav() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Settings dialog */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent className="bg-card border-border max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Configurações</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Configurações</DialogTitle></DialogHeader>
           <div className="flex gap-2 mb-4">
-            <Button size="sm" variant={settingsTab === 'password' ? 'default' : 'outline'} onClick={() => { setSettingsTab('password'); setNewValue(''); }} className="text-xs">
-              Alterar Senha
-            </Button>
-            <Button size="sm" variant={settingsTab === 'pin' ? 'default' : 'outline'} onClick={() => { setSettingsTab('pin'); setNewValue(''); }} className="text-xs">
-              Alterar PIN
-            </Button>
+            <Button size="sm" variant={settingsTab === 'password' ? 'default' : 'outline'} onClick={() => { setSettingsTab('password'); setNewValue(''); }} className="text-xs">Alterar Senha</Button>
+            <Button size="sm" variant={settingsTab === 'pin' ? 'default' : 'outline'} onClick={() => { setSettingsTab('pin'); setNewValue(''); }} className="text-xs">Alterar PIN</Button>
           </div>
           {settingsTab === 'password' && (
             <div className="space-y-3">
