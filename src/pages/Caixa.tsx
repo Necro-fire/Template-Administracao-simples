@@ -3,6 +3,7 @@ import { PinGuard } from '@/components/PinGuard';
 import { DateFilter } from '@/components/DateFilter';
 import { useStore } from '@/store/useStore';
 import { formatCurrency, formatDateTime } from '@/lib/format';
+import { maskCurrency, parseCurrency } from '@/lib/masks';
 import { startOfDay, endOfDay } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
