@@ -68,7 +68,7 @@ export function ProfessionalAlert({
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className={cn(
-        'sm:max-w-[420px] bg-card/95 backdrop-blur-xl border shadow-2xl p-0 gap-0 overflow-hidden',
+        'sm:max-w-[420px] bg-card/95 backdrop-blur-xl border shadow-2xl p-0 gap-0 overflow-hidden [&>button]:hidden',
         config.borderColor,
       )}>
         {/* Top accent bar */}

@@ -155,7 +155,7 @@ export default function Dashboard() {
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Receita & Lucro</h3>
             {dailyData.length > 0 ? (
               <ResponsiveContainer width="100%" height={240}>
-                <AreaChart data={dailyData}>
+                <AreaChart data={dailyData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <defs>
                     <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
