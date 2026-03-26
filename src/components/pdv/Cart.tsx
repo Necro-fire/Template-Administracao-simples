@@ -61,7 +61,7 @@ export function Cart() {
     if (!splitMode) { setPayments([{ method, amount: total }]); setCurrentMethod(method); }
   };
 
-  const handleFinalize = () => {
+  const handleFinalize = async () => {
     if (!guardCaixa()) return;
     if (totalPaid < total) { toast.error('Pagamento insuficiente'); return; }
     if (deliveryMode === 'entrega') {
@@ -70,19 +70,23 @@ export function Cart() {
         return;
       }
     }
-    const sale = finalizeSale(
-      payments, change, customerName.trim(), customerContact.trim(), [],
-      deliveryMode,
-      deliveryMode === 'entrega' ? deliveryAddress : undefined,
-      0
-    );
-    setLastSale(sale);
-    setPayments([]); setShowPayment(false); setSplitMode(false); setCurrentMethod(null);
-    setCustomerName(''); setCustomerContact('');
-    setDeliveryMode('retirada');
-    setDeliveryAddress({ name: '', phone: '', cep: '', street: '', number: '', neighborhood: '', complement: '', reference: '' });
-    toast.success('Venda finalizada!');
-    setShowReceiptConfirm(true);
+    try {
+      const sale = await finalizeSale(
+        payments, change, customerName.trim(), customerContact.trim(), [],
+        deliveryMode,
+        deliveryMode === 'entrega' ? deliveryAddress : undefined,
+        0
+      );
+      setLastSale(sale);
+      setPayments([]); setShowPayment(false); setSplitMode(false); setCurrentMethod(null);
+      setCustomerName(''); setCustomerContact('');
+      setDeliveryMode('retirada');
+      setDeliveryAddress({ name: '', phone: '', cep: '', street: '', number: '', neighborhood: '', complement: '', reference: '' });
+      toast.success('Venda finalizada!');
+      setShowReceiptConfirm(true);
+    } catch (e) {
+      toast.error('Erro ao finalizar venda');
+    }
   };
 
   const addObservation = (itemId: string) => {
