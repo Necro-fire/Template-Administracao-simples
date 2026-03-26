@@ -1,18 +1,20 @@
 import { useState, useMemo } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Lock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useStore } from '@/store/useStore';
 import { Category, CATEGORIES } from '@/types/pizzaria';
 import { formatCurrency } from '@/lib/format';
+import { toast } from 'sonner';
 
 interface ProductGridProps {
   onPizzaClick?: (productId: string) => void;
 }
 
 export function ProductGrid({ onPizzaClick }: ProductGridProps) {
-  const { products, addToCart } = useStore();
+  const { products, addToCart, cashRegister } = useStore();
   const [category, setCategory] = useState<Category | 'all'>('all');
   const [search, setSearch] = useState('');
+  const isOpen = cashRegister && !cashRegister.closedAt;
 
   const filtered = useMemo(() => {
     return products
@@ -22,6 +24,10 @@ export function ProductGrid({ onPizzaClick }: ProductGridProps) {
   }, [products, category, search]);
 
   const handleClick = (product: typeof products[0]) => {
+    if (!isOpen) {
+      toast.error('Caixa fechado. Abra o caixa para continuar.');
+      return;
+    }
     if (product.category === 'pizza' && onPizzaClick) {
       onPizzaClick(product.id);
       return;
@@ -45,7 +51,15 @@ export function ProductGrid({ onPizzaClick }: ProductGridProps) {
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 overflow-y-auto flex-1">
+
+      {!isOpen && (
+        <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3">
+          <Lock className="w-4 h-4 text-destructive shrink-0" />
+          <p className="text-xs text-destructive font-medium">Caixa fechado. Abra o caixa para adicionar produtos.</p>
+        </div>
+      )}
+
+      <div className={`grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 overflow-y-auto flex-1 ${!isOpen ? 'opacity-50 pointer-events-none' : ''}`}>
         {filtered.map((product) => (
           <button key={product.id} onClick={() => handleClick(product)} className="glass-card p-3 flex flex-col items-center gap-1.5 hover:border-primary/50 transition-all active:scale-95 group">
             <span className="text-2xl group-hover:scale-110 transition-transform">{product.icon}</span>

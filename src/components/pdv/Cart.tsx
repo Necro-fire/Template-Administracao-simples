@@ -32,10 +32,24 @@ export function Cart() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [showReceiptConfirm, setShowReceiptConfirm] = useState(false);
 
+  const isOpen = cashRegister && !cashRegister.closedAt;
   const total = cart.reduce((s, i) => s + i.calculatedPrice * i.quantity, 0);
   const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
   const remaining = total - totalPaid;
   const change = totalPaid > total ? totalPaid - total : 0;
+
+  const guardCaixa = (): boolean => {
+    if (!isOpen) {
+      toast.error('Caixa fechado. Abra o caixa para continuar.');
+      return false;
+    }
+    return true;
+  };
+
+  const handleQuantityChange = (itemId: string, newQty: number) => {
+    if (!guardCaixa()) return;
+    updateCartItem(itemId, { quantity: Math.max(1, newQty) });
+  };
 
   const addPayment = () => {
     const amount = parseFloat(currentAmount);
@@ -55,14 +69,7 @@ export function Cart() {
   };
 
   const handleFinalize = () => {
-    if (!cashRegister) {
-      toast.error('Abra o caixa antes de vender!');
-      return;
-    }
-    if (cashRegister.closedAt) {
-      toast.error('O caixa está fechado!');
-      return;
-    }
+    if (!guardCaixa()) return;
     if (!customerName.trim()) {
       toast.error('Informe o nome do cliente');
       return;
@@ -80,7 +87,6 @@ export function Cart() {
     setCustomerName('');
     setCustomerContact('');
     toast.success('Venda finalizada!');
-
     setShowReceiptConfirm(true);
   };
 
@@ -135,11 +141,11 @@ export function Cart() {
                 <p className="text-primary text-xs font-bold">{formatCurrency(item.calculatedPrice * item.quantity)}</p>
               </div>
               <div className="flex items-center gap-1">
-                <button onClick={() => updateCartItem(item.id, { quantity: Math.max(1, item.quantity - 1) })} className="w-6 h-6 rounded bg-muted flex items-center justify-center hover:bg-border transition-colors">
+                <button onClick={() => handleQuantityChange(item.id, item.quantity - 1)} className="w-6 h-6 rounded bg-muted flex items-center justify-center hover:bg-border transition-colors">
                   <Minus className="w-3 h-3" />
                 </button>
                 <span className="w-5 text-center text-xs font-bold">{item.quantity}</span>
-                <button onClick={() => updateCartItem(item.id, { quantity: item.quantity + 1 })} className="w-6 h-6 rounded bg-muted flex items-center justify-center hover:bg-border transition-colors">
+                <button onClick={() => handleQuantityChange(item.id, item.quantity + 1)} className="w-6 h-6 rounded bg-muted flex items-center justify-center hover:bg-border transition-colors">
                   <Plus className="w-3 h-3" />
                 </button>
                 <button onClick={() => removeFromCart(item.id)} className="w-6 h-6 rounded flex items-center justify-center text-destructive hover:bg-destructive/10 transition-colors">
@@ -150,7 +156,6 @@ export function Cart() {
                 </button>
               </div>
             </div>
-            {/* Observations */}
             {item.observations.length > 0 && (
               <div className="mt-1 space-y-0.5">
                 {item.observations.map((obs, i) => (
@@ -181,7 +186,7 @@ export function Cart() {
 
         {!showPayment ? (
           <div className="flex gap-2">
-            <Button onClick={() => setShowPayment(true)} className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
+            <Button onClick={() => { if (guardCaixa()) setShowPayment(true); }} className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
               Pagamento
             </Button>
             <Button onClick={clearCart} variant="outline" size="icon">
@@ -190,11 +195,9 @@ export function Cart() {
           </div>
         ) : (
           <div className="space-y-3 animate-fade-in">
-            {/* Customer info */}
             <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Nome do cliente *" className="bg-secondary border-border h-8 text-xs" />
             <Input value={customerContact} onChange={(e) => setCustomerContact(e.target.value)} placeholder="Contato (telefone/whatsapp)" className="bg-secondary border-border h-8 text-xs" />
 
-            {/* Split mode toggle */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => { setSplitMode(!splitMode); setPayments([]); }}
@@ -204,7 +207,6 @@ export function Cart() {
               </button>
             </div>
 
-            {/* Payment methods */}
             {payments.length > 0 && (
               <div className="space-y-1">
                 {payments.map((p, i) => (

@@ -6,21 +6,22 @@ import { formatCurrency } from '@/lib/format';
 import { startOfDay, endOfDay } from 'date-fns';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend,
+  PieChart, Pie, Cell, CartesianGrid, Legend,
   AreaChart, Area,
 } from 'recharts';
-import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, CreditCard } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, CreditCard, Receipt } from 'lucide-react';
 
 const CHART_COLORS = [
-  'hsl(0,72%,51%)', 'hsl(142,71%,45%)', 'hsl(217,91%,60%)',
-  'hsl(45,93%,47%)', 'hsl(280,70%,50%)', 'hsl(25,95%,53%)',
+  'hsl(var(--primary))', 'hsl(var(--success))', 'hsl(var(--info))',
+  'hsl(var(--warning))', 'hsl(280,70%,50%)', 'hsl(25,95%,53%)',
 ];
 
 const tooltipStyle = {
-  background: 'hsl(0,0%,9%)',
-  border: '1px solid hsl(0,0%,16%)',
+  background: 'hsl(var(--card))',
+  border: '1px solid hsl(var(--border))',
   borderRadius: 8,
   fontSize: 12,
+  color: 'hsl(var(--foreground))',
 };
 
 export default function Dashboard() {
@@ -42,6 +43,7 @@ export default function Dashboard() {
   const avgTicket = filtered.length > 0 ? totalRevenue / filtered.length : 0;
   const totalItems = filtered.reduce((s, sale) => s + sale.items.reduce((c, i) => c + i.quantity, 0), 0);
   const isOpen = cashRegister && !cashRegister.closedAt;
+  const margin = totalRevenue > 0 ? ((profit / totalRevenue) * 100).toFixed(1) : '0';
 
   const categoryData = useMemo(() => {
     const map: Record<string, number> = {};
@@ -86,22 +88,22 @@ export default function Dashboard() {
   }, [filtered]);
 
   const PAYMENT_LABELS: Record<string, string> = {
-    dinheiro: '💵 Dinheiro', pix: '📱 Pix',
-    debito: '💳 Débito', credito: '💳 Crédito',
+    dinheiro: 'Dinheiro', pix: 'Pix',
+    debito: 'Débito', credito: 'Crédito',
   };
 
   return (
     <PinGuard title="Dashboard">
-      <div className="p-4 space-y-5 animate-fade-in max-w-[1400px] mx-auto">
+      <div className="p-4 md:p-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-sm text-muted-foreground">Visão geral do seu negócio</p>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Dashboard</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Visão geral do seu negócio</p>
           </div>
           <div className="flex items-center gap-3">
             <div className={`status-badge ${isOpen ? 'status-open' : 'status-closed'}`}>
-              <span className={`w-2 h-2 rounded-full ${isOpen ? 'bg-success animate-pulse' : 'bg-destructive'}`} />
+              <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'bg-success' : 'bg-destructive'}`} />
               Caixa {isOpen ? 'Aberto' : 'Fechado'}
             </div>
             <DateFilter onFilter={(s, e) => setDateRange({ start: s, end: e })} />
@@ -110,131 +112,144 @@ export default function Dashboard() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          <div className="kpi-card kpi-info">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Vendas</p>
-              <ShoppingCart className="w-4 h-4 text-info" />
-            </div>
-            <p className="text-3xl font-extrabold text-info">{filtered.length}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">{totalItems} itens vendidos</p>
-          </div>
-          <div className="kpi-card kpi-primary">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Faturamento</p>
-              <DollarSign className="w-4 h-4 text-primary" />
-            </div>
-            <p className="text-3xl font-extrabold text-primary">{formatCurrency(totalRevenue)}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">Ticket médio: {formatCurrency(avgTicket)}</p>
-          </div>
-          <div className="kpi-card kpi-destructive">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Custo</p>
-              <TrendingDown className="w-4 h-4 text-destructive" />
-            </div>
-            <p className="text-3xl font-extrabold text-destructive">{formatCurrency(totalCost)}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Margem: {totalRevenue > 0 ? ((profit / totalRevenue) * 100).toFixed(1) : '0'}%
-            </p>
-          </div>
-          <div className="kpi-card kpi-success">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Lucro</p>
-              <TrendingUp className="w-4 h-4 text-success" />
-            </div>
-            <p className={`text-3xl font-extrabold ${profit >= 0 ? 'text-success' : 'text-destructive'}`}>
-              {formatCurrency(profit)}
-            </p>
-          </div>
-          <div className="kpi-card kpi-warning">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Produtos</p>
-              <Package className="w-4 h-4 text-warning" />
-            </div>
-            <p className="text-3xl font-extrabold text-warning">{products.filter(p => p.active).length}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">Ativos no catálogo</p>
-          </div>
+          <KpiCard label="Vendas" value={String(filtered.length)} sub={`${totalItems} itens vendidos`} icon={<ShoppingCart className="w-4 h-4" />} variant="info" />
+          <KpiCard label="Faturamento" value={formatCurrency(totalRevenue)} sub={`Ticket médio: ${formatCurrency(avgTicket)}`} icon={<DollarSign className="w-4 h-4" />} variant="primary" />
+          <KpiCard label="Custo" value={formatCurrency(totalCost)} sub={`Margem: ${margin}%`} icon={<TrendingDown className="w-4 h-4" />} variant="destructive" />
+          <KpiCard label="Lucro" value={formatCurrency(profit)} icon={<TrendingUp className="w-4 h-4" />} variant={profit >= 0 ? 'success' : 'destructive'} />
+          <KpiCard label="Produtos Ativos" value={String(products.filter(p => p.active).length)} sub="No catálogo" icon={<Package className="w-4 h-4" />} variant="warning" />
         </div>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-          <div className="lg:col-span-2 glass-card p-5">
-            <h3 className="text-sm font-bold mb-4">Receita & Lucro por Período</h3>
-            <ResponsiveContainer width="100%" height={240}>
-              <AreaChart data={dailyData}>
-                <defs>
-                  <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(0,72%,51%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(0,72%,51%)" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gradProfit" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(142,71%,45%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(142,71%,45%)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,0%,16%)" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(0,0%,55%)' }} />
-                <YAxis tick={{ fontSize: 10, fill: 'hsl(0,0%,55%)' }} />
-                <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={tooltipStyle} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Area type="monotone" dataKey="revenue" name="Receita" stroke="hsl(0,72%,51%)" fill="url(#gradRevenue)" strokeWidth={2} />
-                <Area type="monotone" dataKey="profit" name="Lucro" stroke="hsl(142,71%,45%)" fill="url(#gradProfit)" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Revenue & Profit area chart */}
+          <div className="lg:col-span-2 bg-card border border-border rounded-lg p-5">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Receita & Lucro</h3>
+            {dailyData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={240}>
+                <AreaChart data={dailyData}>
+                  <defs>
+                    <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gradProfit" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={tooltipStyle} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Area type="monotone" dataKey="revenue" name="Receita" stroke="hsl(var(--primary))" fill="url(#gradRevenue)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="profit" name="Lucro" stroke="hsl(var(--success))" fill="url(#gradProfit)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[240px] flex items-center justify-center text-xs text-muted-foreground">Sem dados no período</div>
+            )}
           </div>
-          <div className="glass-card p-5">
-            <h3 className="text-sm font-bold mb-4">Por Categoria</h3>
-            <ResponsiveContainer width="100%" height={240}>
-              <PieChart>
-                <Pie data={categoryData} cx="50%" cy="50%" innerRadius={45} outerRadius={75} dataKey="value" paddingAngle={3}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} style={{ fontSize: 10 }}>
-                  {categoryData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                </Pie>
-                <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={tooltipStyle} />
-              </PieChart>
-            </ResponsiveContainer>
+
+          {/* Category pie chart */}
+          <div className="bg-card border border-border rounded-lg p-5">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Por Categoria</h3>
+            {categoryData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  <Pie data={categoryData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} style={{ fontSize: 10 }}>
+                    {categoryData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={tooltipStyle} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[240px] flex items-center justify-center text-xs text-muted-foreground">Sem dados</div>
+            )}
           </div>
         </div>
 
         {/* Bottom Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Payment Methods */}
-          <div className="glass-card p-5">
-            <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-primary" /> Formas de Pagamento
+          <div className="bg-card border border-border rounded-lg p-5">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+              <CreditCard className="w-3.5 h-3.5" /> Formas de Pagamento
             </h3>
-            <div className="grid grid-cols-2 gap-3">
-              {paymentData.map((p) => (
-                <div key={p.name} className="bg-secondary rounded-lg p-3 flex flex-col gap-1">
-                  <p className="text-xs text-muted-foreground">{PAYMENT_LABELS[p.name] || p.name}</p>
-                  <p className="text-lg font-bold text-foreground">{formatCurrency(p.value)}</p>
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${totalRevenue > 0 ? (p.value / totalRevenue) * 100 : 0}%` }} />
-                  </div>
-                </div>
-              ))}
-              {paymentData.length === 0 && <p className="col-span-full text-sm text-muted-foreground text-center py-6">Sem dados</p>}
-            </div>
+            {paymentData.length > 0 ? (
+              <div className="space-y-3">
+                {paymentData.map((p) => {
+                  const pct = totalRevenue > 0 ? (p.value / totalRevenue) * 100 : 0;
+                  return (
+                    <div key={p.name} className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">{PAYMENT_LABELS[p.name] || p.name}</span>
+                        <span className="text-sm font-semibold text-foreground tabular-nums">{formatCurrency(p.value)}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground text-right">{pct.toFixed(1)}%</p>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-8">Sem dados</p>
+            )}
           </div>
 
           {/* Top Products */}
-          <div className="glass-card p-5">
-            <h3 className="text-sm font-bold mb-4">🏆 Produtos Mais Vendidos</h3>
-            <div className="space-y-2">
-              {topProducts.map((p, i) => (
-                <div key={p.name} className="flex items-center gap-3 bg-secondary rounded-lg px-3 py-2.5">
-                  <span className="text-lg font-bold text-muted-foreground w-6 text-center">{i + 1}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{p.name}</p>
-                    <p className="text-[11px] text-muted-foreground">{p.qty} unidade{p.qty > 1 ? 's' : ''}</p>
+          <div className="bg-card border border-border rounded-lg p-5">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+              <Receipt className="w-3.5 h-3.5" /> Produtos Mais Vendidos
+            </h3>
+            {topProducts.length > 0 ? (
+              <div className="space-y-2">
+                {topProducts.map((p, i) => (
+                  <div key={p.name} className="flex items-center gap-3 bg-secondary/50 rounded-lg px-3 py-2.5 border border-border/50">
+                    <span className="text-sm font-bold text-muted-foreground w-5 text-center tabular-nums">{i + 1}º</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate text-foreground">{p.name}</p>
+                      <p className="text-[11px] text-muted-foreground">{p.qty} unidade{p.qty > 1 ? 's' : ''}</p>
+                    </div>
+                    <p className="text-sm font-bold text-primary tabular-nums">{formatCurrency(p.revenue)}</p>
                   </div>
-                  <p className="text-sm font-bold text-primary">{formatCurrency(p.revenue)}</p>
-                </div>
-              ))}
-              {topProducts.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Sem dados</p>}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-8">Sem dados</p>
+            )}
           </div>
         </div>
       </div>
     </PinGuard>
+  );
+}
+
+function KpiCard({ label, value, sub, icon, variant }: {
+  label: string; value: string; sub?: string; icon: React.ReactNode;
+  variant: 'primary' | 'success' | 'warning' | 'info' | 'destructive';
+}) {
+  const colorMap = {
+    primary: { text: 'text-primary', border: 'border-primary/20', bg: 'bg-primary/5', bar: 'bg-primary' },
+    success: { text: 'text-success', border: 'border-success/20', bg: 'bg-success/5', bar: 'bg-success' },
+    warning: { text: 'text-warning', border: 'border-warning/20', bg: 'bg-warning/5', bar: 'bg-warning' },
+    info: { text: 'text-info', border: 'border-info/20', bg: 'bg-info/5', bar: 'bg-info' },
+    destructive: { text: 'text-destructive', border: 'border-destructive/20', bg: 'bg-destructive/5', bar: 'bg-destructive' },
+  };
+  const c = colorMap[variant];
+
+  return (
+    <div className={`bg-card border ${c.border} rounded-lg p-4 relative overflow-hidden transition-all duration-200 hover:shadow-md`}>
+      <div className={`absolute top-0 left-0 right-0 h-0.5 ${c.bar}`} />
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{label}</p>
+        <div className={`${c.text} opacity-60`}>{icon}</div>
+      </div>
+      <p className={`text-2xl font-extrabold ${c.text} tabular-nums leading-tight`}>{value}</p>
+      {sub && <p className="text-[10px] text-muted-foreground mt-1">{sub}</p>}
+    </div>
   );
 }
