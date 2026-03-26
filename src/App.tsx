@@ -12,7 +12,6 @@ import Dashboard from "./pages/Dashboard";
 import Produtos from "./pages/Produtos";
 import Caixa from "./pages/Caixa";
 import Vendas from "./pages/Vendas";
-import Administracao from "./pages/Administracao";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,7 +46,6 @@ function AuthenticatedApp() {
             <Route path="/produtos" element={<Produtos />} />
             <Route path="/caixa" element={<Caixa />} />
             <Route path="/vendas" element={<Vendas />} />
-            <Route path="/admin" element={<Administracao />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>

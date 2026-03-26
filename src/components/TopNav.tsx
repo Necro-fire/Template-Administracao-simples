@@ -1,5 +1,5 @@
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutDashboard, Package, Wallet, Receipt, Unlock, LogOut, Settings, ShieldCheck } from 'lucide-react';
+import { ShoppingCart, LayoutDashboard, Package, Wallet, Receipt, Unlock, LogOut, Settings } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useStore } from '@/store/useStore';
 import { useState } from 'react';
@@ -19,7 +19,6 @@ const links = [
   { to: '/produtos', label: 'Produtos', icon: Package },
   { to: '/caixa', label: 'Caixa', icon: Wallet },
   { to: '/vendas', label: 'Vendas', icon: Receipt },
-  { to: '/admin', label: 'Admin', icon: ShieldCheck },
 ];
 
 export function TopNav() {

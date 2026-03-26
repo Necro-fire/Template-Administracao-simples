@@ -9,7 +9,7 @@ export const CATEGORIES: { value: Category; label: string; icon: string }[] = [
   { value: 'outros', label: 'Outros', icon: '📦' },
 ];
 
-export type PizzaSize = 'P' | 'M' | 'G' | 'GG';
+export type PizzaSize = 'P' | 'M' | 'G' | 'GG' | 'Família';
 export type PizzaType = 'tradicional' | 'especial1' | 'especial2' | 'doce';
 
 export const PIZZA_SIZES: { value: PizzaSize; label: string }[] = [
@@ -17,6 +17,7 @@ export const PIZZA_SIZES: { value: PizzaSize; label: string }[] = [
   { value: 'M', label: 'Média' },
   { value: 'G', label: 'Grande' },
   { value: 'GG', label: 'Gigante' },
+  { value: 'Família', label: 'Família' },
 ];
 
 export const PIZZA_TYPES: { value: PizzaType; label: string }[] = [
@@ -77,7 +78,7 @@ export interface CartItem {
   calculatedPrice: number;
   border?: PizzaBorder;
   borderFree?: boolean;
-  freeSoda?: Product;
+  freeSoda?: SodaProduct;
 }
 
 export interface Sale {
@@ -129,17 +130,26 @@ export interface AuditLog {
   date: string;
 }
 
-// Border types
-export type BorderCategory = 'tradicional' | 'premium';
-
+// Border types — no more category
 export interface PizzaBorder {
   id: string;
   name: string;
   price: number;
   cost: number;
-  category: BorderCategory;
   active: boolean;
   freeSizes: PizzaSize[];
+}
+
+// Soda product for free soda rules
+export interface SodaProduct {
+  id: string;
+  name: string;
+  size: string; // e.g. "1L", "2L"
+  cost: number;
+  active: boolean;
+  icon: string;
+  price: number;
+  freeSizes: PizzaSize[]; // which pizza sizes give this soda for free
 }
 
 export interface FreeBorderRule {
