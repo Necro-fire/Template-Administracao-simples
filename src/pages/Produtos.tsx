@@ -230,6 +230,38 @@ export default function Produtos() {
             </div>
           </TabsContent>
 
+          {/* ===== REFRIGERANTES TAB ===== */}
+          <TabsContent value="refrigerantes" className="space-y-4 mt-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">Gerencie refrigerantes disponíveis para cortesia</p>
+              <Button onClick={openNewSoda} className="bg-primary hover:bg-primary/90 gap-1.5 font-bold">
+                <Plus className="w-4 h-4" /> Novo Refrigerante
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {sodaProducts.map(s => (
+                <div key={s.id} className={`glass-card p-4 flex items-center gap-3 transition-all hover:border-primary/30 ${!s.active ? 'opacity-50' : ''}`}>
+                  <span className="text-3xl">{s.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm truncate">{s.name}</p>
+                    <p className="text-sm text-primary font-bold">{formatCurrency(s.price)}</p>
+                    <p className="text-[10px] text-destructive flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" /> Custo: {formatCurrency(s.cost)}
+                    </p>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => openEditSoda(s)} className="p-2 rounded-lg bg-secondary hover:bg-accent transition-colors">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => setDeleteSodaConfirm(s.id)} className="p-2 rounded-lg bg-secondary hover:bg-destructive/20 text-destructive transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {sodaProducts.length === 0 && <p className="col-span-full text-muted-foreground text-center py-12">Nenhum refrigerante cadastrado</p>}
+            </div>
           {/* ===== REGRAS DE GRÁTIS TAB ===== */}
           <TabsContent value="regras" className="space-y-6 mt-4">
             {/* Free Border Rules */}
