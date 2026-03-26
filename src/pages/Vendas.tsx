@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Search, Eye, XCircle, Printer, Truck, Store } from 'lucide-react';
 import { Sale } from '@/types/pizzaria';
 import { ReceiptDialog } from '@/components/pdv/ReceiptDialog';
+import { ProfessionalAlert } from '@/components/ui/professional-alert';
 
 export default function Vendas() {
   const { sales, cancelSale } = useStore();
@@ -18,6 +19,7 @@ export default function Vendas() {
   const [search, setSearch] = useState('');
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [saleToCancel, setSaleToCancel] = useState<Sale | null>(null);
 
   const filtered = useMemo(() => {
     let result = filterByDate(sales, dateRange.start, dateRange.end);
@@ -28,11 +30,14 @@ export default function Vendas() {
     return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [sales, dateRange, search]);
 
-  const handleCancel = async (sale: Sale) => {
-    if (!window.confirm(`Cancelar venda #${sale.code}?`)) return;
-    await cancelSale(sale.id);
-    setSelectedSale(null);
+  const handleCancelConfirm = async () => {
+    if (!saleToCancel) return;
+    await cancelSale(saleToCancel.id);
+    if (selectedSale?.id === saleToCancel.id) {
+      setSelectedSale(null);
+    }
     toast.success('Venda cancelada');
+    setSaleToCancel(null);
   };
 
   const getItemLabel = (item: Sale['items'][0]) => {
@@ -82,7 +87,7 @@ export default function Vendas() {
               <div className="flex gap-1">
                 <button onClick={() => setSelectedSale(sale)} className="p-1.5 rounded bg-secondary hover:bg-accent transition-colors"><Eye className="w-3.5 h-3.5" /></button>
                 {!sale.cancelled && (
-                  <button onClick={() => handleCancel(sale)} className="p-1.5 rounded bg-secondary hover:bg-destructive/20 text-destructive transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => setSaleToCancel(sale)} className="p-1.5 rounded bg-secondary hover:bg-destructive/20 text-destructive transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
                 )}
                 <button onClick={() => { setSelectedSale(sale); setShowReceipt(true); }} className="p-1.5 rounded bg-secondary hover:bg-accent transition-colors"><Printer className="w-3.5 h-3.5" /></button>
               </div>
@@ -134,12 +139,24 @@ export default function Vendas() {
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={() => setShowReceipt(true)} variant="outline" className="flex-1 gap-1"><Printer className="w-3.5 h-3.5" /> Notas</Button>
-                  {!selectedSale.cancelled && <Button onClick={() => handleCancel(selectedSale)} variant="outline" className="border-destructive text-destructive gap-1"><XCircle className="w-3.5 h-3.5" /> Cancelar</Button>}
+                  {!selectedSale.cancelled && <Button onClick={() => setSaleToCancel(selectedSale)} variant="outline" className="border-destructive text-destructive gap-1"><XCircle className="w-3.5 h-3.5" /> Cancelar</Button>}
                 </div>
               </div>
             )}
           </DialogContent>
         </Dialog>
+
+        <ProfessionalAlert
+          open={!!saleToCancel}
+          onClose={() => setSaleToCancel(null)}
+          variant="error"
+          title="Tem certeza que deseja cancelar esta venda?"
+          confirmLabel="Cancelar Venda"
+          cancelLabel="Voltar"
+          onConfirm={handleCancelConfirm}
+          onCancel={() => setSaleToCancel(null)}
+          showCancel
+        />
 
         <ReceiptDialog sale={selectedSale} open={showReceipt} onOpenChange={setShowReceipt} />
       </div>
