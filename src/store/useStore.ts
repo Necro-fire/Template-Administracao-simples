@@ -65,7 +65,7 @@ interface AppState {
 
   sales: Sale[];
   nextSaleCode: number;
-  finalizeSale: (payments: PaymentSplit[], change: number, customerName: string, customerContact: string, observations: string[]) => Sale;
+  finalizeSale: (payments: PaymentSplit[], change: number, customerName: string, customerContact: string, observations: string[], deliveryMode?: import('@/types/pizzaria').DeliveryMode, deliveryAddress?: import('@/types/pizzaria').DeliveryAddress, deliveryFee?: number) => Sale;
   cancelSale: (saleId: string) => void;
 
   cashRegister: CashRegister | null;
