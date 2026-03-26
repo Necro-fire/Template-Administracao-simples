@@ -291,7 +291,46 @@ export const useStore = create<AppState>()((set, get) => ({
   },
 
   // ===== CART (local only) =====
-  addToCart: (item) => set(s => ({ cart: [...s.cart, item] })),
+  addToCart: (item) => set(s => {
+    // Try to find an identical item to group
+    const existingIndex = s.cart.findIndex(existing => {
+      // Must be same product
+      if (existing.product.id !== item.product.id) return false;
+      // Same pizza size
+      if (existing.pizzaSize !== item.pizzaSize) return false;
+      // Same second flavor
+      const existingSF = existing.secondFlavor?.id || null;
+      const newSF = item.secondFlavor?.id || null;
+      if (existingSF !== newSF) return false;
+      // Same border
+      const existingBorder = existing.border?.id || null;
+      const newBorder = item.border?.id || null;
+      if (existingBorder !== newBorder) return false;
+      // Same borderFree flag
+      if ((existing.borderFree || false) !== (item.borderFree || false)) return false;
+      // Same freeSoda
+      const existingSoda = existing.freeSoda?.id || null;
+      const newSoda = item.freeSoda?.id || null;
+      if (existingSoda !== newSoda) return false;
+      // Same observations
+      const existingObs = JSON.stringify(existing.observations || []);
+      const newObs = JSON.stringify(item.observations || []);
+      if (existingObs !== newObs) return false;
+      // Same calculated price per unit
+      if (existing.calculatedPrice !== item.calculatedPrice) return false;
+      return true;
+    });
+
+    if (existingIndex >= 0) {
+      const updated = [...s.cart];
+      updated[existingIndex] = {
+        ...updated[existingIndex],
+        quantity: updated[existingIndex].quantity + item.quantity,
+      };
+      return { cart: updated };
+    }
+    return { cart: [...s.cart, item] };
+  }),
   removeFromCart: (itemId) => set(s => ({ cart: s.cart.filter(i => i.id !== itemId) })),
   updateCartItem: (itemId, updates) => set(s => ({ cart: s.cart.map(i => i.id === itemId ? { ...i, ...updates } : i) })),
   clearCart: () => set({ cart: [] }),

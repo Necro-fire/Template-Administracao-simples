@@ -7,9 +7,9 @@ import { endOfDay, format, startOfDay } from 'date-fns';
 import {
   XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, CartesianGrid, Legend,
-  LineChart, Line, ReferenceDot,
+  BarChart, Bar,
 } from 'recharts';
-import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, CreditCard, Receipt, Pizza } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, CreditCard, Receipt, Pizza, Beef, Wine, UtensilsCrossed } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { PizzaSize, Sale } from '@/types/pizzaria';
 
