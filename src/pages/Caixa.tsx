@@ -117,8 +117,8 @@ export default function Caixa() {
             </div>
             {!isOpen ? (
               <div className="flex items-center gap-2">
-                <Input type="number" step="0.01" value={initialAmount} onChange={e => setInitialAmount(e.target.value)}
-                  placeholder="Valor inicial (R$)" className="bg-secondary border-border w-40 h-9 text-sm" />
+                <Input value={initialAmount} onChange={e => setInitialAmount(maskCurrency(e.target.value))}
+                  placeholder="R$ 0,00" className="bg-secondary border-border w-44 h-9 text-sm font-mono" />
                 <Button onClick={handleOpen} className="bg-success hover:bg-success/90 text-success-foreground font-semibold h-9 text-xs">
                   Abrir Caixa
                 </Button>
