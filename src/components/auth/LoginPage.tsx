@@ -17,9 +17,10 @@ export function LoginPage() {
 
   useEffect(() => { loadFromDb(); }, [loadFromDb]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login(cnpj, password)) {
+    const success = await login(cnpj, password);
+    if (success) {
       toast.success('Login realizado!');
     } else {
       toast.error('CNPJ ou senha incorretos');
