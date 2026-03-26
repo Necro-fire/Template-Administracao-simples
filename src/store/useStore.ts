@@ -155,7 +155,7 @@ export const useStore = create<AppState>()((set, get) => ({
         date: s.created_at, customerName: s.customer_name || '', customerContact: s.customer_contact || '',
         observations: s.observations || [], cancelled: s.cancelled || false, cancelledAt: s.cancelled_at,
         deliveryMode: s.delivery_mode, deliveryAddress: s.delivery_address as any,
-        deliveryFee: Number(s.delivery_fee) || 0, payments: (s.payments || []) as PaymentSplit[],
+        deliveryFee: Number(s.delivery_fee) || 0, payments: (s.payments || []) as unknown as PaymentSplit[],
         items: (saleItemsData || []).filter(si => si.sale_id === s.id).map(si => ({
           id: si.id, product: si.product_data as any, quantity: si.quantity || 1,
           observations: si.observations || [], pizzaSize: si.pizza_size as PizzaSize | undefined,
