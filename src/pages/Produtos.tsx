@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ICONS = ['🍕','🍔','🥤','🧃','💧','🍟','🧅','🧀','🫙','🍰','🍫','🍌','☕','🥛','🍺','🥩','🌭','🥗','➕','📦'];
 
-const DEFAULT_PIZZA_PRICES = { P: 0, M: 0, G: 0, GG: 0, 'Família': 0 } as Record<PizzaSize, number>;
+const DEFAULT_PIZZA_PRICES = { P: 0, M: 0, G: 0, GG: 0 } as Record<PizzaSize, number>;
 
 const emptyProduct: Omit<Product, 'id'> = {
   name: '', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, observations: [],
@@ -292,7 +292,7 @@ export default function Produtos() {
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground">Preços *</label>
-                  <div className="grid grid-cols-5 gap-2 mt-1">
+                  <div className="grid grid-cols-4 gap-2 mt-1">
                     {PIZZA_SIZES.map(s => (
                       <div key={s.value}><span className="text-[10px] text-muted-foreground">{s.value}</span>
                         <Input type="number" step="0.01" value={form.pizzaPrices?.[s.value]||''} onChange={e => setForm({...form,pizzaPrices:{...form.pizzaPrices!,[s.value]:parseFloat(e.target.value)||0}})} className="bg-secondary border-border h-8 text-xs" />
@@ -302,7 +302,7 @@ export default function Produtos() {
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground flex items-center gap-1"><Lock className="w-3 h-3"/>Custos</label>
-                  <div className="grid grid-cols-5 gap-2 mt-1">
+                  <div className="grid grid-cols-4 gap-2 mt-1">
                     {PIZZA_SIZES.map(s => (
                       <div key={s.value}><span className="text-[10px] text-muted-foreground">{s.value}</span>
                         <Input type="number" step="0.01" value={form.pizzaCosts?.[s.value]||''} onChange={e => setForm({...form,pizzaCosts:{...form.pizzaCosts!,[s.value]:parseFloat(e.target.value)||0}})} className="bg-secondary border-border h-8 text-xs" />
@@ -352,7 +352,7 @@ export default function Produtos() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Borda grátis por tamanho</label>
-                <div className="grid grid-cols-5 gap-2 mt-1">
+                <div className="grid grid-cols-4 gap-2 mt-1">
                   {PIZZA_SIZES.map(sz => (
                     <button key={sz.value} onClick={() => toggleBorderFreeSize(sz.value)}
                       className={`p-2 rounded-lg border text-center text-xs font-medium transition-all ${

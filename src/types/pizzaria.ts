@@ -9,7 +9,7 @@ export const CATEGORIES: { value: Category; label: string; icon: string }[] = [
   { value: 'outros', label: 'Outros', icon: '📦' },
 ];
 
-export type PizzaSize = 'P' | 'M' | 'G' | 'GG' | 'Família';
+export type PizzaSize = 'P' | 'M' | 'G' | 'GG';
 export type PizzaType = 'tradicional' | 'especial1' | 'especial2' | 'doce';
 
 export const PIZZA_SIZES: { value: PizzaSize; label: string }[] = [
@@ -17,7 +17,6 @@ export const PIZZA_SIZES: { value: PizzaSize; label: string }[] = [
   { value: 'M', label: 'Média' },
   { value: 'G', label: 'Grande' },
   { value: 'GG', label: 'Gigante' },
-  { value: 'Família', label: 'Família' },
 ];
 
 export const PIZZA_TYPES: { value: PizzaType; label: string }[] = [
