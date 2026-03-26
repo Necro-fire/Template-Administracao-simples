@@ -339,7 +339,7 @@ export function Cart() {
               <div className="flex gap-2">
                 <Button
                   onClick={handleFinalize}
-                  disabled={totalPaid < total || !customerName.trim()}
+                  disabled={totalPaid < total}
                   className="flex-1 bg-success hover:bg-success/90 text-success-foreground font-bold disabled:opacity-50"
                 >
                   Finalizar Venda
