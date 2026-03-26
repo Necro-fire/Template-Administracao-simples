@@ -83,6 +83,11 @@ interface AppState {
   updateBorder: (b: PizzaBorder) => Promise<void>;
   deleteBorder: (id: string) => Promise<void>;
 
+  // Soda products CRUD
+  addSodaProduct: (p: Product) => Promise<void>;
+  updateSodaProduct: (p: Product) => Promise<void>;
+  deleteSodaProduct: (id: string) => Promise<void>;
+
   // Rules
   setFreeBorderRules: (rules: FreeBorderRule[]) => Promise<void>;
   setFreeSodaRules: (rules: FreeSodaRule[]) => Promise<void>;
