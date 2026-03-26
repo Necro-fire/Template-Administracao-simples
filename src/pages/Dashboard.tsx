@@ -295,43 +295,21 @@ export default function Dashboard() {
               <EmptyState message="Carregando dados do período..." />
             ) : dailyData.length > 0 ? (
               <ResponsiveContainer width="100%" height={240}>
-                <LineChart data={dailyData} margin={{ top: 8, right: 12, left: 2, bottom: 4 }}>
+                <BarChart data={dailyData} margin={{ top: 8, right: 12, left: 2, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
                   <YAxis
                     tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                     axisLine={false}
                     tickLine={false}
-                    domain={['dataMin - 5', 'dataMax + 5']}
+                    domain={['auto', 'auto']}
                     allowDataOverflow={false}
                   />
                   <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={tooltipStyle} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Line type="monotone" dataKey="revenue" name="Receita" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="profit" name="Lucro" stroke="hsl(var(--success))" strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 4 }} />
-                  {extrema.max && (
-                    <ReferenceDot
-                      x={extrema.max.date}
-                      y={extrema.max.revenue}
-                      r={4}
-                      fill="hsl(var(--primary))"
-                      stroke="hsl(var(--card))"
-                      strokeWidth={2}
-                      label={{ value: 'Máx', position: 'top', fill: 'hsl(var(--primary))', fontSize: 10 }}
-                    />
-                  )}
-                  {extrema.min && (
-                    <ReferenceDot
-                      x={extrema.min.date}
-                      y={extrema.min.revenue}
-                      r={4}
-                      fill="hsl(var(--warning))"
-                      stroke="hsl(var(--card))"
-                      strokeWidth={2}
-                      label={{ value: 'Mín', position: 'bottom', fill: 'hsl(var(--warning))', fontSize: 10 }}
-                    />
-                  )}
-                </LineChart>
+                  <Bar dataKey="revenue" name="Receita" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="profit" name="Lucro" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             ) : (
               <EmptyState message="Nenhum dado encontrado neste período" />
