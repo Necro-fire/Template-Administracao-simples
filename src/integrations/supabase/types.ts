@@ -57,6 +57,7 @@ export type Database = {
         Row: {
           active: boolean | null
           category: string | null
+          cost: number | null
           created_at: string | null
           free_sizes: string[] | null
           id: string
@@ -67,6 +68,7 @@ export type Database = {
         Insert: {
           active?: boolean | null
           category?: string | null
+          cost?: number | null
           created_at?: string | null
           free_sizes?: string[] | null
           id?: string
@@ -77,6 +79,7 @@ export type Database = {
         Update: {
           active?: boolean | null
           category?: string | null
+          cost?: number | null
           created_at?: string | null
           free_sizes?: string[] | null
           id?: string
