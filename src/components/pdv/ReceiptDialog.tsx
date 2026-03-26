@@ -30,6 +30,17 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
   const dateStr = new Date(sale.date).toLocaleDateString('pt-BR');
   const timeStr = new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const paymentLabel = sale.payments.map(p => PAYMENT_METHODS.find(m => m.method === p.method)?.label || p.method).join(', ');
+  const internalCost = sale.items.reduce((sum, item) => {
+    const productCost = (Number(item.product.cost) || 0) * item.quantity;
+    const borderCost = item.border ? Number(item.border.cost || 0) : 0;
+    const freeSodaCost = item.freeSoda ? Number(item.freeSoda.cost || 0) : 0;
+    return sum + productCost + borderCost + freeSodaCost;
+  }, 0);
+  const discountValue = sale.items.reduce((sum, item) => {
+    const freeBorder = item.borderFree && item.border ? Number(item.border.price || 0) : 0;
+    const freeSoda = item.freeSoda ? Number(item.freeSoda.price || 0) : 0;
+    return sum + freeBorder + freeSoda;
+  }, 0);
 
   const renderEntregador = () => {
     const lines: string[] = [
@@ -51,15 +62,18 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       if (addr.phone) lines.push(`Telefone: ${addr.phone}`);
       lines.push('');
     }
-    lines.push('DETALHES DO PEDIDO:');
+    lines.push('ITENS (RESUMO):');
     sale.items.forEach(item => {
       lines.push(`${getItemLabel(item)}${item.quantity > 1 ? ` x${item.quantity}` : ''}`);
-      if (item.border) lines.push(`• Borda ${item.border.name}`);
-      item.observations.forEach(obs => lines.push(`• ${obs}`));
     });
+    lines.push('');
+    lines.push(`TOTAL A RECEBER: ${formatCurrency(sale.total)}`);
+    if (sale.deliveryMode === 'entrega' && sale.deliveryAddress?.reference) {
+      lines.push(`Referência: ${sale.deliveryAddress.reference}`);
+    }
     if (sale.observations.length > 0) {
       lines.push('');
-      lines.push('OBS:');
+      lines.push('OBSERVAÇÕES DE ENTREGA:');
       sale.observations.forEach(o => lines.push(o));
     }
     return lines.join('\n');
@@ -68,6 +82,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
   const renderCliente = () => {
     const lines: string[] = [
       companyName.toUpperCase(),
+      `CNPJ: ${cnpj}`,
       'Obrigado pela preferência!',
       '',
       'NOTA DO CLIENTE',
@@ -95,6 +110,8 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     lines.push(`TOTAL: ${formatCurrency(sale.total)}`);
     lines.push(`Forma de pagamento: ${paymentLabel}`);
     if (sale.change > 0) lines.push(`Troco: ${formatCurrency(sale.change)}`);
+    lines.push('--------------------------------------');
+    lines.push('Volte sempre!');
     return lines.join('\n');
   };
 
@@ -137,10 +154,13 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     lines.push('RESUMO FINANCEIRO:');
     const subtotal = sale.total - (sale.deliveryFee || 0);
     lines.push(`Subtotal: ${formatCurrency(subtotal)}`);
+    lines.push(`Descontos/Benefícios: ${formatCurrency(discountValue)}`);
     if (sale.deliveryFee && sale.deliveryFee > 0) {
       lines.push(`Taxa de Entrega: ${formatCurrency(sale.deliveryFee)}`);
     }
     lines.push(`TOTAL FINAL: ${formatCurrency(sale.total)}`);
+    lines.push(`Custos internos: ${formatCurrency(internalCost)}`);
+    lines.push(`Resultado bruto: ${formatCurrency(sale.total - internalCost)}`);
     lines.push(`Forma de pagamento: ${paymentLabel}`);
     if (sale.change > 0) lines.push(`Troco: ${formatCurrency(sale.change)}`);
     lines.push('');
@@ -167,8 +187,8 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
   };
 
   const tabs: { value: ReceiptType; label: string; icon: React.ReactNode }[] = [
-    { value: 'entregador', label: 'Entregador', icon: <Truck className="w-3.5 h-3.5" /> },
     { value: 'cliente', label: 'Cliente', icon: <User className="w-3.5 h-3.5" /> },
+    { value: 'entregador', label: 'Entregador', icon: <Truck className="w-3.5 h-3.5" /> },
     { value: 'completa', label: 'Completa', icon: <FileText className="w-3.5 h-3.5" /> },
   ];
 
