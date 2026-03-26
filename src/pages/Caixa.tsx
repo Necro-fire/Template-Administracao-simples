@@ -168,8 +168,8 @@ export default function Caixa() {
                       ↑ Sangria
                     </button>
                   </div>
-                  <Input type="number" step="0.01" value={movAmount} onChange={e => setMovAmount(e.target.value)}
-                    placeholder="Valor (R$)" className="bg-secondary border-border h-9 text-sm" />
+                  <Input value={movAmount} onChange={e => setMovAmount(maskCurrency(e.target.value))}
+                    placeholder="R$ 0,00" className="bg-secondary border-border h-9 text-sm font-mono" />
                   <Input value={movDesc} onChange={e => setMovDesc(e.target.value)}
                     placeholder="Descrição (opcional)" className="bg-secondary border-border h-9 text-sm" />
                   <Button onClick={handleMovement} className="w-full bg-primary hover:bg-primary/90 h-9 font-semibold text-xs">
