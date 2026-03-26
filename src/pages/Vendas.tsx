@@ -2,19 +2,18 @@ import { useState, useMemo } from 'react';
 import { PinGuard } from '@/components/PinGuard';
 import { DateFilter, filterByDate } from '@/components/DateFilter';
 import { useStore } from '@/store/useStore';
-import { useAuthStore } from '@/store/authStore';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { startOfDay, endOfDay } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Search, Eye, XCircle, Printer } from 'lucide-react';
+import { Search, Eye, XCircle, Printer, Truck, Store } from 'lucide-react';
 import { Sale } from '@/types/pizzaria';
+import { ReceiptDialog } from '@/components/pdv/ReceiptDialog';
 
 export default function Vendas() {
   const { sales, cancelSale } = useStore();
-  const { cnpj, companyName } = useAuthStore();
   const [dateRange, setDateRange] = useState({ start: startOfDay(new Date()), end: endOfDay(new Date()) });
   const [search, setSearch] = useState('');
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
@@ -43,22 +42,14 @@ export default function Vendas() {
     return label;
   };
 
-  const printReceipt = () => {
-    const el = document.getElementById('receipt-content');
-    if (!el) return;
-    const w = window.open('', '', 'width=320,height=600');
-    if (!w) return;
-    w.document.write(`<html><head><style>body{font-family:monospace;font-size:12px;width:80mm;margin:0 auto;padding:10px;}</style></head><body>${el.innerHTML}</body></html>`);
-    w.document.close();
-    w.print();
-    w.close();
-  };
-
   return (
     <PinGuard title="Vendas">
-      <div className="p-4 space-y-4 animate-fade-in">
+      <div className="p-4 space-y-4 animate-fade-in max-w-[1400px] mx-auto">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold">🧾 Vendas</h1>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Vendas</h1>
+            <p className="text-xs text-muted-foreground">Histórico de vendas</p>
+          </div>
           <DateFilter onFilter={(s, e) => setDateRange({ start: s, end: e })} />
         </div>
 
@@ -72,8 +63,18 @@ export default function Vendas() {
             <div key={sale.id} className={`glass-card p-3 flex items-center gap-4 ${sale.cancelled ? 'opacity-50' : ''}`}>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm font-bold">#{sale.code}</span>
+                  <span className="font-mono text-sm font-bold text-foreground">#{sale.code}</span>
                   {sale.cancelled && <span className="text-[10px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded">CANCELADA</span>}
+                  {sale.deliveryMode === 'entrega' && (
+                    <span className="text-[10px] bg-info/10 text-info px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                      <Truck className="w-2.5 h-2.5" /> Entrega
+                    </span>
+                  )}
+                  {sale.deliveryMode === 'retirada' && (
+                    <span className="text-[10px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                      <Store className="w-2.5 h-2.5" /> Retirada
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">{sale.customerName} · {formatDateTime(sale.date)}</p>
               </div>
@@ -93,25 +94,37 @@ export default function Vendas() {
         {/* Sale detail dialog */}
         <Dialog open={!!selectedSale && !showReceipt} onOpenChange={() => setSelectedSale(null)}>
           <DialogContent className="bg-card border-border max-w-md">
-            <DialogHeader><DialogTitle>Venda #{selectedSale?.code}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle className="text-foreground">Venda #{selectedSale?.code}</DialogTitle></DialogHeader>
             {selectedSale && (
               <div className="space-y-3">
                 <div className="text-sm space-y-1">
-                  <p><span className="text-muted-foreground">Cliente:</span> {selectedSale.customerName}</p>
-                  <p><span className="text-muted-foreground">Contato:</span> {selectedSale.customerContact || 'N/A'}</p>
-                  <p><span className="text-muted-foreground">Data:</span> {formatDateTime(selectedSale.date)}</p>
+                  <p><span className="text-muted-foreground">Cliente:</span> <span className="text-foreground">{selectedSale.customerName}</span></p>
+                  <p><span className="text-muted-foreground">Contato:</span> <span className="text-foreground">{selectedSale.customerContact || 'N/A'}</span></p>
+                  <p><span className="text-muted-foreground">Data:</span> <span className="text-foreground">{formatDateTime(selectedSale.date)}</span></p>
+                  {selectedSale.deliveryMode && (
+                    <p><span className="text-muted-foreground">Modo:</span> <span className="text-foreground capitalize">{selectedSale.deliveryMode}</span></p>
+                  )}
                   {selectedSale.cancelled && <p className="text-destructive font-bold">CANCELADA em {formatDateTime(selectedSale.cancelledAt!)}</p>}
                 </div>
+                {selectedSale.deliveryMode === 'entrega' && selectedSale.deliveryAddress && (
+                  <div className="bg-secondary/50 border border-border rounded-lg p-3 text-xs space-y-0.5">
+                    <p className="font-semibold text-foreground text-[10px] uppercase tracking-wider mb-1">Endereço</p>
+                    <p className="text-foreground">{selectedSale.deliveryAddress.street}, nº {selectedSale.deliveryAddress.number}</p>
+                    <p className="text-foreground">{selectedSale.deliveryAddress.neighborhood}</p>
+                    {selectedSale.deliveryAddress.cep && <p className="text-muted-foreground">CEP: {selectedSale.deliveryAddress.cep}</p>}
+                    {selectedSale.deliveryAddress.reference && <p className="text-muted-foreground">Ref: {selectedSale.deliveryAddress.reference}</p>}
+                  </div>
+                )}
                 <div className="space-y-1">
                   {selectedSale.items.map((item, i) => (
                     <div key={i} className="flex justify-between text-sm bg-secondary rounded px-2 py-1">
-                      <span>{item.quantity}x {getItemLabel(item)}</span>
-                      <span className="font-bold">{formatCurrency(item.calculatedPrice * item.quantity)}</span>
+                      <span className="text-foreground">{item.quantity}x {getItemLabel(item)}</span>
+                      <span className="font-bold text-foreground">{formatCurrency(item.calculatedPrice * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
                 <div className="border-t border-border pt-2">
-                  <div className="flex justify-between font-bold"><span>Total</span><span className="text-primary">{formatCurrency(selectedSale.total)}</span></div>
+                  <div className="flex justify-between font-bold"><span className="text-foreground">Total</span><span className="text-primary">{formatCurrency(selectedSale.total)}</span></div>
                   <div className="mt-1 space-y-0.5">
                     {selectedSale.payments.map((p, i) => (
                       <div key={i} className="flex justify-between text-xs text-muted-foreground"><span className="capitalize">{p.method}</span><span>{formatCurrency(p.amount)}</span></div>
@@ -120,7 +133,7 @@ export default function Vendas() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={() => setShowReceipt(true)} variant="outline" className="flex-1 gap-1"><Printer className="w-3.5 h-3.5" /> Nota</Button>
+                  <Button onClick={() => setShowReceipt(true)} variant="outline" className="flex-1 gap-1"><Printer className="w-3.5 h-3.5" /> Notas</Button>
                   {!selectedSale.cancelled && <Button onClick={() => handleCancel(selectedSale)} variant="outline" className="border-destructive text-destructive gap-1"><XCircle className="w-3.5 h-3.5" /> Cancelar</Button>}
                 </div>
               </div>
@@ -128,46 +141,7 @@ export default function Vendas() {
           </DialogContent>
         </Dialog>
 
-        {/* Receipt dialog */}
-        <Dialog open={showReceipt} onOpenChange={() => setShowReceipt(false)}>
-          <DialogContent className="bg-card border-border max-w-xs">
-            <DialogHeader><DialogTitle>Nota</DialogTitle></DialogHeader>
-            {selectedSale && (
-              <>
-                <div id="receipt-content" className="font-mono text-xs leading-relaxed bg-foreground text-background p-4 rounded whitespace-pre-wrap">
-{`================================
-${companyName.toUpperCase().padStart(16 + companyName.length / 2).padEnd(32)}
-  CNPJ: ${cnpj}
-================================
-
-PEDIDO Nº: ${selectedSale.code}
-DATA: ${new Date(selectedSale.date).toLocaleDateString('pt-BR')}  ${new Date(selectedSale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-
---------------------------------
-ITENS DO PEDIDO
---------------------------------
-${selectedSale.items.map(i => `${i.quantity}x ${getItemLabel(i).padEnd(20).slice(0, 20)} ${formatCurrency(i.calculatedPrice * i.quantity)}`).join('\n')}
-
---------------------------------
-${selectedSale.items.flatMap(i => i.observations || []).length > 0 ? `OBSERVAÇÕES:\n${selectedSale.items.flatMap(i => i.observations.map(o => `- ${o}`)).join('\n')}\n\n--------------------------------` : ''}
-TOTAL DO PEDIDO: ${formatCurrency(selectedSale.total)}
---------------------------------
-
-FORMA DE PAGAMENTO:
-${selectedSale.payments.map(p => `${p.method.toUpperCase()} ${formatCurrency(p.amount)}`).join('\n')}
-${selectedSale.change > 0 ? `TROCO: ${formatCurrency(selectedSale.change)}` : ''}
-
-CLIENTE: ${selectedSale.customerName}
-
---------------------------------
-      VOLTE SEMPRE!
-================================`}
-                </div>
-                <Button onClick={printReceipt} className="w-full bg-primary hover:bg-primary/90 gap-1"><Printer className="w-4 h-4" /> Imprimir</Button>
-              </>
-            )}
-          </DialogContent>
-        </Dialog>
+        <ReceiptDialog sale={selectedSale} open={showReceipt} onOpenChange={setShowReceipt} />
       </div>
     </PinGuard>
   );
