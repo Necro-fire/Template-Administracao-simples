@@ -23,7 +23,7 @@ const emptyProduct: Omit<Product, 'id'> = {
 };
 
 const emptyBorder: Omit<PizzaBorder, 'id'> = {
-  name: '', price: 0, category: 'tradicional', active: true, freeSizes: [],
+  name: '', price: 0, cost: 0, category: 'tradicional', active: true, freeSizes: [],
 };
 
 export default function Produtos() {

@@ -34,7 +34,7 @@ export default function Administracao() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const openNew = () => {
-    setForm({ name: '', price: 0, category: 'tradicional', active: true, freeSizes: [] });
+    setForm({ name: '', price: 0, cost: 0, category: 'tradicional', active: true, freeSizes: [] });
     setEditing(null);
     setDialogOpen(true);
   };
