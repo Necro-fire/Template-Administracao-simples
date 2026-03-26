@@ -422,6 +422,10 @@ export default function Produtos() {
                 <Input type="number" step="0.01" value={borderForm.price||''} onChange={e => setBorderForm({...borderForm, price: parseFloat(e.target.value)||0})} className="bg-secondary border-border" />
               </div>
               <div>
+                <label className="text-xs text-muted-foreground flex items-center gap-1"><Lock className="w-3 h-3" /> Custo (R$)</label>
+                <Input type="number" step="0.01" value={borderForm.cost||''} onChange={e => setBorderForm({...borderForm, cost: parseFloat(e.target.value)||0})} className="bg-secondary border-border" />
+              </div>
+              <div>
                 <label className="text-xs text-muted-foreground">Categoria</label>
                 <div className="flex gap-2 mt-1">
                   {(['tradicional', 'premium'] as BorderCategory[]).map(cat => (
