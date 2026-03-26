@@ -131,6 +131,7 @@ export default function Produtos() {
           <TabsList className="bg-secondary border border-border">
             <TabsTrigger value="produtos">📦 Produtos</TabsTrigger>
             <TabsTrigger value="bordas">🧀 Bordas</TabsTrigger>
+            <TabsTrigger value="refrigerantes">🥤 Refrigerantes</TabsTrigger>
             <TabsTrigger value="regras">🎁 Regras de Grátis</TabsTrigger>
           </TabsList>
 
