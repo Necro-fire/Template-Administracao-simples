@@ -34,7 +34,7 @@ const mapSodaProduct = (row: any): SodaProduct => ({
   price: Number(row.price) || 0,
   cost: Number(row.cost) || 0,
   active: row.active ?? true,
-  freeSizes: [], // will be computed from freeSodaRules
+  freeSizes: (row.free_sizes || []) as PizzaSize[],
 });
 
 interface AppState {
