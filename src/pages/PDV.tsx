@@ -21,13 +21,13 @@ export default function PDV() {
     setPizzaBuilderOpen(true);
   };
 
-  const handleOpenRegister = () => {
+  const handleOpenRegister = async () => {
     const amount = parseFloat(initialAmount.replace(',', '.'));
     if (isNaN(amount) || amount < 0) {
       toast.error('Informe um valor válido');
       return;
     }
-    openRegister(amount);
+    await openRegister(amount);
     setInitialAmount('');
     setShowOpenDialog(false);
     toast.success('Caixa aberto!');

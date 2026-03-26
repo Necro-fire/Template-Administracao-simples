@@ -28,9 +28,9 @@ export default function Vendas() {
     return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [sales, dateRange, search]);
 
-  const handleCancel = (sale: Sale) => {
+  const handleCancel = async (sale: Sale) => {
     if (!window.confirm(`Cancelar venda #${sale.code}?`)) return;
-    cancelSale(sale.id);
+    await cancelSale(sale.id);
     setSelectedSale(null);
     toast.success('Venda cancelada');
   };

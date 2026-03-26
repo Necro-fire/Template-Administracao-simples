@@ -1,252 +1,420 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { Product, CartItem, Sale, CashRegister, CashMovement, PaymentSplit, AuditLog, PizzaSize, PizzaBorder, FreeBorderRule, FreeSodaRule } from '@/types/pizzaria';
+import { supabase } from '@/integrations/supabase/client';
+import { Product, CartItem, Sale, CashRegister, CashMovement, PaymentSplit, AuditLog, PizzaSize, PizzaBorder, FreeBorderRule, FreeSodaRule, BorderCategory, PizzaType, Category } from '@/types/pizzaria';
 
-const DEMO_PRODUCTS: Product[] = [
-  // Pizzas - Tradicional
-  { id: 'p1', name: 'Calabresa', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, pizzaType: 'tradicional', pizzaPrices: { P: 25, M: 35, G: 45, GG: 55 }, pizzaCosts: { P: 8, M: 12, G: 16, GG: 20 } },
-  { id: 'p2', name: 'Margherita', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, pizzaType: 'tradicional', pizzaPrices: { P: 25, M: 35, G: 45, GG: 55 }, pizzaCosts: { P: 8, M: 12, G: 16, GG: 20 } },
-  { id: 'p3', name: 'Mussarela', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, pizzaType: 'tradicional', pizzaPrices: { P: 22, M: 32, G: 42, GG: 52 }, pizzaCosts: { P: 7, M: 10, G: 14, GG: 18 } },
-  { id: 'p4', name: 'Portuguesa', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, pizzaType: 'tradicional', pizzaPrices: { P: 28, M: 38, G: 48, GG: 58 }, pizzaCosts: { P: 9, M: 13, G: 17, GG: 21 } },
-  // Pizzas - Especial 1
-  { id: 'p5', name: '4 Queijos', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, pizzaType: 'especial1', pizzaPrices: { P: 30, M: 42, G: 52, GG: 62 }, pizzaCosts: { P: 10, M: 15, G: 19, GG: 23 } },
-  { id: 'p6', name: 'Frango c/ Catupiry', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, pizzaType: 'especial1', pizzaPrices: { P: 30, M: 42, G: 52, GG: 62 }, pizzaCosts: { P: 10, M: 15, G: 19, GG: 23 } },
-  // Pizzas - Especial 2
-  { id: 'p7', name: 'Camarão', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, pizzaType: 'especial2', pizzaPrices: { P: 35, M: 48, G: 60, GG: 72 }, pizzaCosts: { P: 14, M: 20, G: 26, GG: 32 } },
-  { id: 'p8', name: 'Lombo Canadense', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, pizzaType: 'especial2', pizzaPrices: { P: 33, M: 45, G: 57, GG: 68 }, pizzaCosts: { P: 12, M: 18, G: 24, GG: 30 } },
-  // Pizzas - Doce
-  { id: 'p9', name: 'Chocolate', category: 'pizza', icon: '🍫', price: 0, cost: 0, active: true, pizzaType: 'doce', pizzaPrices: { P: 28, M: 38, G: 48, GG: 58 }, pizzaCosts: { P: 9, M: 13, G: 17, GG: 21 } },
-  { id: 'p10', name: 'Banana c/ Canela', category: 'pizza', icon: '🍌', price: 0, cost: 0, active: true, pizzaType: 'doce', pizzaPrices: { P: 26, M: 36, G: 46, GG: 56 }, pizzaCosts: { P: 8, M: 12, G: 16, GG: 20 } },
-  // Hambúrgueres
-  { id: 'h1', name: 'X-Burger', category: 'hamburguer', icon: '🍔', price: 22, cost: 10, active: true },
-  { id: 'h2', name: 'X-Bacon', category: 'hamburguer', icon: '🍔', price: 28, cost: 13, active: true },
-  { id: 'h3', name: 'X-Tudo', category: 'hamburguer', icon: '🍔', price: 32, cost: 15, active: true },
-  // Bebidas
-  { id: 'b1', name: 'Coca-Cola 2L', category: 'bebida', icon: '🥤', price: 12, cost: 6, active: true },
-  { id: 'b2', name: 'Guaraná 2L', category: 'bebida', icon: '🥤', price: 10, cost: 5, active: true },
-  { id: 'b3', name: 'Suco Natural', category: 'bebida', icon: '🧃', price: 8, cost: 3, active: true },
-  { id: 'b4', name: 'Água Mineral', category: 'bebida', icon: '💧', price: 4, cost: 1.5, active: true },
-  // Porções
-  { id: 'po1', name: 'Batata Frita', category: 'porcao', icon: '🍟', price: 18, cost: 6, active: true },
-  { id: 'po2', name: 'Onion Rings', category: 'porcao', icon: '🧅', price: 20, cost: 7, active: true },
-  // Extras
-  { id: 'e1', name: 'Borda Recheada', category: 'extras', icon: '🧀', price: 8, cost: 3, active: true },
-  { id: 'e2', name: 'Molho Extra', category: 'extras', icon: '🫙', price: 3, cost: 0.8, active: true },
-  // Outros
-  { id: 'o1', name: 'Sobremesa do Dia', category: 'outros', icon: '🍰', price: 15, cost: 5, active: true },
-];
+// Helper to map DB row to Product
+const mapProduct = (row: any): Product => ({
+  id: row.id,
+  name: row.name,
+  category: row.category as Category,
+  icon: row.icon || '📦',
+  price: Number(row.price) || 0,
+  cost: Number(row.cost) || 0,
+  active: row.active ?? true,
+  pizzaType: row.pizza_type as PizzaType | undefined,
+  pizzaPrices: row.pizza_prices as Record<PizzaSize, number> | undefined,
+  pizzaCosts: row.pizza_costs as Record<PizzaSize, number> | undefined,
+  observations: row.observations || [],
+});
 
-const DEMO_BORDERS: PizzaBorder[] = [
-  { id: 'bd1', name: 'Catupiry', price: 8, category: 'tradicional', active: true, freeSizes: ['G', 'GG'] },
-  { id: 'bd2', name: 'Cheddar', price: 8, category: 'tradicional', active: true, freeSizes: ['G', 'GG'] },
-  { id: 'bd3', name: 'Cream Cheese', price: 10, category: 'premium', active: true, freeSizes: ['GG'] },
-  { id: 'bd4', name: 'Chocolate', price: 10, category: 'premium', active: true, freeSizes: [] },
-  { id: 'bd5', name: 'Doce de Leite', price: 10, category: 'premium', active: true, freeSizes: [] },
-];
+const mapBorder = (row: any): PizzaBorder => ({
+  id: row.id,
+  name: row.name,
+  price: Number(row.price) || 0,
+  category: (row.category || 'tradicional') as BorderCategory,
+  active: row.active ?? true,
+  freeSizes: (row.free_sizes || []) as PizzaSize[],
+});
 
-const DEMO_SODAS: Product[] = [
-  { id: 'soda1', name: 'Coca-Cola 1L', category: 'bebida', icon: '🥤', price: 8, cost: 4, active: true },
-  { id: 'soda2', name: 'Guaraná 1L', category: 'bebida', icon: '🥤', price: 7, cost: 3.5, active: true },
-  { id: 'soda3', name: 'Fanta Laranja 1L', category: 'bebida', icon: '🥤', price: 7, cost: 3.5, active: true },
-  { id: 'soda4', name: 'Sprite 1L', category: 'bebida', icon: '🥤', price: 7, cost: 3.5, active: true },
-];
+const mapSodaProduct = (row: any): Product => ({
+  id: row.id,
+  name: row.name,
+  category: 'bebida' as Category,
+  icon: row.icon || '🥤',
+  price: Number(row.price) || 0,
+  cost: Number(row.cost) || 0,
+  active: row.active ?? true,
+});
 
 interface AppState {
+  // Data from DB
   products: Product[];
-  addProduct: (p: Product) => void;
-  updateProduct: (p: Product) => void;
-  deleteProduct: (id: string) => void;
+  borders: PizzaBorder[];
+  sodaProducts: Product[];
+  freeBorderRules: FreeBorderRule[];
+  freeSodaRules: FreeSodaRule[];
+  sales: Sale[];
+  cashRegister: CashRegister | null;
+  cashHistory: CashRegister[];
+  auditLogs: AuditLog[];
+  nextSaleCode: number;
+  loading: boolean;
 
+  // Local-only state
   cart: CartItem[];
+
+  // Init
+  fetchAll: () => Promise<void>;
+
+  // Products
+  addProduct: (p: Product) => Promise<void>;
+  updateProduct: (p: Product) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+
+  // Cart (local)
   addToCart: (item: CartItem) => void;
   removeFromCart: (itemId: string) => void;
   updateCartItem: (itemId: string, updates: Partial<CartItem>) => void;
   clearCart: () => void;
 
-  sales: Sale[];
-  nextSaleCode: number;
-  finalizeSale: (payments: PaymentSplit[], change: number, customerName: string, customerContact: string, observations: string[], deliveryMode?: import('@/types/pizzaria').DeliveryMode, deliveryAddress?: import('@/types/pizzaria').DeliveryAddress, deliveryFee?: number) => Sale;
-  cancelSale: (saleId: string) => void;
+  // Sales
+  finalizeSale: (payments: PaymentSplit[], change: number, customerName: string, customerContact: string, observations: string[], deliveryMode?: import('@/types/pizzaria').DeliveryMode, deliveryAddress?: import('@/types/pizzaria').DeliveryAddress, deliveryFee?: number) => Promise<Sale>;
+  cancelSale: (saleId: string) => Promise<void>;
 
-  cashRegister: CashRegister | null;
-  cashHistory: CashRegister[];
-  openRegister: (initialAmount: number) => void;
-  closeRegister: (informedAmount?: number) => void;
-  addMovement: (m: Omit<CashMovement, 'id' | 'date'>) => void;
-  deleteMovement: (movementId: string) => void;
-
-  auditLogs: AuditLog[];
-  addAuditLog: (action: string, details: string) => void;
+  // Cash
+  openRegister: (initialAmount: number) => Promise<void>;
+  closeRegister: (informedAmount?: number) => Promise<void>;
+  addMovement: (m: Omit<CashMovement, 'id' | 'date'>) => Promise<void>;
+  deleteMovement: (movementId: string) => Promise<void>;
 
   // Borders
-  borders: PizzaBorder[];
-  addBorder: (b: PizzaBorder) => void;
-  updateBorder: (b: PizzaBorder) => void;
-  deleteBorder: (id: string) => void;
+  addBorder: (b: PizzaBorder) => Promise<void>;
+  updateBorder: (b: PizzaBorder) => Promise<void>;
+  deleteBorder: (id: string) => Promise<void>;
 
-  // Free rules
-  freeBorderRules: FreeBorderRule[];
-  setFreeBorderRules: (rules: FreeBorderRule[]) => void;
-  freeSodaRules: FreeSodaRule[];
-  setFreeSodaRules: (rules: FreeSodaRule[]) => void;
-
-  // Soda products for free soda
-  sodaProducts: Product[];
+  // Rules
+  setFreeBorderRules: (rules: FreeBorderRule[]) => Promise<void>;
+  setFreeSodaRules: (rules: FreeSodaRule[]) => Promise<void>;
   setSodaProducts: (products: Product[]) => void;
+
+  // Audit
+  addAuditLog: (action: string, details: string) => Promise<void>;
 }
 
-export const useStore = create<AppState>()(
-  persist(
-    (set, get) => ({
-      products: DEMO_PRODUCTS,
-      addProduct: (p) => {
-        set((s) => ({ products: [...s.products, p] }));
-        get().addAuditLog('PRODUCT_ADD', `Produto criado: ${p.name}`);
-      },
-      updateProduct: (p) => {
-        set((s) => ({ products: s.products.map((x) => (x.id === p.id ? p : x)) }));
-        get().addAuditLog('PRODUCT_UPDATE', `Produto atualizado: ${p.name}`);
-      },
-      deleteProduct: (id) => {
-        const product = get().products.find(p => p.id === id);
-        set((s) => ({ products: s.products.filter((x) => x.id !== id) }));
-        get().addAuditLog('PRODUCT_DELETE', `Produto removido: ${product?.name || id}`);
-      },
+export const useStore = create<AppState>()((set, get) => ({
+  products: [],
+  borders: [],
+  sodaProducts: [],
+  freeBorderRules: [],
+  freeSodaRules: [],
+  sales: [],
+  cashRegister: null,
+  cashHistory: [],
+  auditLogs: [],
+  nextSaleCode: 1,
+  loading: true,
+  cart: [],
 
+  fetchAll: async () => {
+    set({ loading: true });
+    const [
+      { data: productsData },
+      { data: bordersData },
+      { data: sodaData },
+      { data: fbrData },
+      { data: fsrData },
+      { data: salesData },
+      { data: settingsData },
+      { data: auditData },
+      { data: registersData },
+    ] = await Promise.all([
+      supabase.from('products').select('*').order('name'),
+      supabase.from('borders').select('*').order('name'),
+      supabase.from('soda_products').select('*').order('name'),
+      supabase.from('free_border_rules').select('*'),
+      supabase.from('free_soda_rules').select('*'),
+      supabase.from('sales').select('*').order('created_at', { ascending: false }).limit(200),
+      supabase.from('app_settings').select('*').eq('key', 'next_sale_code').single(),
+      supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200),
+      supabase.from('cash_registers').select('*').is('closed_at', null).limit(1),
+    ]);
+
+    // Get open register with its movements and sales
+    let cashRegister: CashRegister | null = null;
+    if (registersData && registersData.length > 0) {
+      const reg = registersData[0];
+      const [{ data: entries }, { data: exits }, { data: regSales }] = await Promise.all([
+        supabase.from('cash_movements').select('*').eq('register_id', reg.id).in('type', ['entry', 'reforco']).order('created_at'),
+        supabase.from('cash_movements').select('*').eq('register_id', reg.id).in('type', ['exit', 'sangria']).order('created_at'),
+        supabase.from('sales').select('*').eq('register_id', reg.id).order('created_at'),
+      ]);
+
+      const mapMovement = (m: any): CashMovement => ({
+        id: m.id, type: m.type, amount: Number(m.amount), description: m.description || '',
+        paymentMethod: m.payment_method, date: m.created_at, origin: m.origin as 'manual' | 'pdv',
+      });
+
+      // Get sale items for each sale
+      const regSaleIds = (regSales || []).map(s => s.id);
+      const { data: saleItemsData } = regSaleIds.length > 0
+        ? await supabase.from('sale_items').select('*').in('sale_id', regSaleIds)
+        : { data: [] };
+
+      const mapSale = (s: any): Sale => ({
+        id: s.id, code: s.code, total: Number(s.total), change: Number(s.change_amount) || 0,
+        date: s.created_at, customerName: s.customer_name || '', customerContact: s.customer_contact || '',
+        observations: s.observations || [], cancelled: s.cancelled || false, cancelledAt: s.cancelled_at,
+        deliveryMode: s.delivery_mode, deliveryAddress: s.delivery_address as any,
+        deliveryFee: Number(s.delivery_fee) || 0, payments: (s.payments || []) as unknown as PaymentSplit[],
+        items: (saleItemsData || []).filter(si => si.sale_id === s.id).map(si => ({
+          id: si.id, product: si.product_data as any, quantity: si.quantity || 1,
+          observations: si.observations || [], pizzaSize: si.pizza_size as PizzaSize | undefined,
+          secondFlavor: si.second_flavor as any, calculatedPrice: Number(si.calculated_price),
+          border: si.border_data as any, borderFree: si.border_free || false, freeSoda: si.free_soda as any,
+        })),
+      });
+
+      cashRegister = {
+        id: reg.id, openedAt: reg.opened_at!, closedAt: reg.closed_at || undefined,
+        initialAmount: Number(reg.initial_amount) || 0, informedAmount: reg.informed_amount ? Number(reg.informed_amount) : undefined,
+        sales: (regSales || []).map(mapSale),
+        entries: (entries || []).map(mapMovement),
+        exits: (exits || []).map(mapMovement),
+      };
+    }
+
+    // Map sales (all)
+    const allSaleIds = (salesData || []).map(s => s.id);
+    const { data: allSaleItems } = allSaleIds.length > 0
+      ? await supabase.from('sale_items').select('*').in('sale_id', allSaleIds)
+      : { data: [] };
+
+    const mappedSales: Sale[] = (salesData || []).map(s => ({
+      id: s.id, code: s.code, total: Number(s.total), change: Number(s.change_amount) || 0,
+      date: s.created_at, customerName: s.customer_name || '', customerContact: s.customer_contact || '',
+      observations: s.observations || [], cancelled: s.cancelled || false, cancelledAt: s.cancelled_at,
+      deliveryMode: s.delivery_mode as any, deliveryAddress: s.delivery_address as any,
+      deliveryFee: Number(s.delivery_fee) || 0, payments: (s.payments || []) as unknown as PaymentSplit[],
+      items: (allSaleItems || []).filter(si => si.sale_id === s.id).map(si => ({
+        id: si.id, product: si.product_data as any, quantity: si.quantity || 1,
+        observations: si.observations || [], pizzaSize: si.pizza_size as PizzaSize | undefined,
+        secondFlavor: si.second_flavor as any, calculatedPrice: Number(si.calculated_price),
+        border: si.border_data as any, borderFree: si.border_free || false, freeSoda: si.free_soda as any,
+      })),
+    }));
+
+    set({
+      products: (productsData || []).map(mapProduct),
+      borders: (bordersData || []).map(mapBorder),
+      sodaProducts: (sodaData || []).map(mapSodaProduct),
+      freeBorderRules: (fbrData || []).map(r => ({ size: r.size as PizzaSize, enabled: r.enabled ?? false })),
+      freeSodaRules: (fsrData || []).map(r => ({ size: r.size as PizzaSize, enabled: r.enabled ?? false })),
+      sales: mappedSales,
+      cashRegister,
+      nextSaleCode: settingsData ? Number(settingsData.value) || 1 : 1,
+      auditLogs: (auditData || []).map(a => ({
+        id: a.id, action: a.action, details: a.details || '', user: a.user_name || 'system', date: a.created_at!,
+      })),
+      loading: false,
+    });
+  },
+
+  // ===== PRODUCTS =====
+  addProduct: async (p) => {
+    const { error } = await supabase.from('products').insert({
+      id: p.id, name: p.name, category: p.category, icon: p.icon, price: p.price, cost: p.cost,
+      active: p.active, pizza_type: p.pizzaType || null, pizza_prices: p.pizzaPrices as any,
+      pizza_costs: p.pizzaCosts as any, observations: p.observations || [],
+    });
+    if (!error) {
+      set(s => ({ products: [...s.products, p] }));
+      get().addAuditLog('PRODUCT_ADD', `Produto criado: ${p.name}`);
+    }
+  },
+  updateProduct: async (p) => {
+    const { error } = await supabase.from('products').update({
+      name: p.name, category: p.category, icon: p.icon, price: p.price, cost: p.cost,
+      active: p.active, pizza_type: p.pizzaType || null, pizza_prices: p.pizzaPrices as any,
+      pizza_costs: p.pizzaCosts as any, observations: p.observations || [],
+    }).eq('id', p.id);
+    if (!error) {
+      set(s => ({ products: s.products.map(x => x.id === p.id ? p : x) }));
+      get().addAuditLog('PRODUCT_UPDATE', `Produto atualizado: ${p.name}`);
+    }
+  },
+  deleteProduct: async (id) => {
+    const product = get().products.find(p => p.id === id);
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (!error) {
+      set(s => ({ products: s.products.filter(x => x.id !== id) }));
+      get().addAuditLog('PRODUCT_DELETE', `Produto removido: ${product?.name || id}`);
+    }
+  },
+
+  // ===== CART (local only) =====
+  addToCart: (item) => set(s => ({ cart: [...s.cart, item] })),
+  removeFromCart: (itemId) => set(s => ({ cart: s.cart.filter(i => i.id !== itemId) })),
+  updateCartItem: (itemId, updates) => set(s => ({ cart: s.cart.map(i => i.id === itemId ? { ...i, ...updates } : i) })),
+  clearCart: () => set({ cart: [] }),
+
+  // ===== SALES =====
+  finalizeSale: async (payments, change, customerName, customerContact, observations, deliveryMode, deliveryAddress, deliveryFee) => {
+    const state = get();
+    const total = state.cart.reduce((sum, i) => sum + i.calculatedPrice * i.quantity, 0);
+    const code = String(state.nextSaleCode).padStart(6, '0');
+    const registerId = state.cashRegister?.id || null;
+
+    const { data: saleRow, error } = await supabase.from('sales').insert({
+      code, register_id: registerId, total, change_amount: change,
+      customer_name: customerName, customer_contact: customerContact,
+      observations: observations || [], delivery_mode: deliveryMode || 'retirada',
+      delivery_address: deliveryAddress as any, delivery_fee: deliveryFee || 0,
+      payments: payments as any,
+    }).select().single();
+
+    if (error || !saleRow) throw new Error('Failed to save sale');
+
+    // Insert sale items
+    const itemsToInsert = state.cart.map(item => ({
+      sale_id: saleRow.id,
+      product_data: item.product as any,
+      quantity: item.quantity,
+      observations: item.observations,
+      pizza_size: item.pizzaSize || null,
+      second_flavor: item.secondFlavor as any || null,
+      calculated_price: item.calculatedPrice,
+      border_data: item.border as any || null,
+      border_free: item.borderFree || false,
+      free_soda: item.freeSoda as any || null,
+    }));
+    await supabase.from('sale_items').insert(itemsToInsert);
+
+    // Increment sale code
+    const newCode = state.nextSaleCode + 1;
+    await supabase.from('app_settings').update({ value: newCode as any }).eq('key', 'next_sale_code');
+
+    const sale: Sale = {
+      id: saleRow.id, code, items: [...state.cart], payments, total, change,
+      date: saleRow.created_at, customerName, customerContact, observations: observations || [],
+      cancelled: false, deliveryMode, deliveryAddress, deliveryFee,
+    };
+
+    // Update local state
+    set(s => ({
+      sales: [sale, ...s.sales],
+      nextSaleCode: newCode,
       cart: [],
-      addToCart: (item) => set((s) => ({ cart: [...s.cart, item] })),
-      removeFromCart: (itemId) => set((s) => ({ cart: s.cart.filter((i) => i.id !== itemId) })),
-      updateCartItem: (itemId, updates) =>
-        set((s) => ({
-          cart: s.cart.map((i) => (i.id === itemId ? { ...i, ...updates } : i)),
-        })),
-      clearCart: () => set({ cart: [] }),
+      cashRegister: s.cashRegister ? { ...s.cashRegister, sales: [...s.cashRegister.sales, sale] } : s.cashRegister,
+    }));
 
-      sales: [],
-      nextSaleCode: 1,
-      finalizeSale: (payments, change, customerName, customerContact, observations, deliveryMode, deliveryAddress, deliveryFee) => {
-        const state = get();
-        const total = state.cart.reduce((sum, i) => sum + i.calculatedPrice * i.quantity, 0);
-        const sale: Sale = {
-          id: crypto.randomUUID(),
-          code: String(state.nextSaleCode).padStart(6, '0'),
-          items: [...state.cart],
-          payments,
-          total,
-          change,
-          date: new Date().toISOString(),
-          customerName,
-          customerContact,
-          observations,
-          cancelled: false,
-          deliveryMode,
-          deliveryAddress,
-          deliveryFee,
-        };
-        const reg = state.cashRegister;
-        set({
-          sales: [...state.sales, sale],
-          nextSaleCode: state.nextSaleCode + 1,
-          cart: [],
-          cashRegister: reg && !reg.closedAt ? { ...reg, sales: [...reg.sales, sale] } : reg,
-        });
-        get().addAuditLog('SALE', `Venda ${sale.code} - Total: R$ ${total.toFixed(2)}`);
-        return sale;
+    get().addAuditLog('SALE', `Venda ${code} - Total: R$ ${total.toFixed(2)}`);
+    return sale;
+  },
+
+  cancelSale: async (saleId) => {
+    const sale = get().sales.find(s => s.id === saleId);
+    if (!sale || sale.cancelled) return;
+    const now = new Date().toISOString();
+    await supabase.from('sales').update({ cancelled: true, cancelled_at: now }).eq('id', saleId);
+    const updatedSale = { ...sale, cancelled: true, cancelledAt: now };
+    set(s => ({
+      sales: s.sales.map(sl => sl.id === saleId ? updatedSale : sl),
+      cashRegister: s.cashRegister ? {
+        ...s.cashRegister,
+        sales: s.cashRegister.sales.map(sl => sl.id === saleId ? updatedSale : sl),
+      } : s.cashRegister,
+    }));
+    get().addAuditLog('SALE_CANCEL', `Venda ${sale.code} cancelada`);
+  },
+
+  // ===== CASH REGISTER =====
+  openRegister: async (initialAmount) => {
+    const { data, error } = await supabase.from('cash_registers').insert({
+      initial_amount: initialAmount,
+    }).select().single();
+    if (error || !data) return;
+    set({
+      cashRegister: {
+        id: data.id, openedAt: data.opened_at!, initialAmount,
+        sales: [], entries: [], exits: [],
       },
-      cancelSale: (saleId) =>
-        set((s) => {
-          const sale = s.sales.find(sl => sl.id === saleId);
-          if (!sale || sale.cancelled) return {};
-          const updatedSale = { ...sale, cancelled: true, cancelledAt: new Date().toISOString() };
-          const updatedSales = s.sales.map(sl => sl.id === saleId ? updatedSale : sl);
-          const reg = s.cashRegister;
-          const updatedReg = reg ? {
-            ...reg,
-            sales: reg.sales.map(sl => sl.id === saleId ? updatedSale : sl),
-          } : reg;
-          get().addAuditLog('SALE_CANCEL', `Venda ${sale.code} cancelada`);
-          return { sales: updatedSales, cashRegister: updatedReg };
-        }),
+    });
+    get().addAuditLog('REGISTER_OPEN', `Caixa aberto com R$ ${initialAmount.toFixed(2)}`);
+  },
 
-      cashRegister: null,
-      cashHistory: [],
-      openRegister: (initialAmount) => {
-        set({
-          cashRegister: {
-            id: crypto.randomUUID(),
-            openedAt: new Date().toISOString(),
-            initialAmount,
-            sales: [],
-            entries: [],
-            exits: [],
-          },
-        });
-        get().addAuditLog('REGISTER_OPEN', `Caixa aberto com R$ ${initialAmount.toFixed(2)}`);
-      },
-      closeRegister: (informedAmount) =>
-        set((s) => {
-          if (!s.cashRegister) return {};
-          const closed = { ...s.cashRegister, closedAt: new Date().toISOString(), informedAmount };
-          get().addAuditLog('REGISTER_CLOSE', `Caixa fechado`);
-          return { cashRegister: null, cashHistory: [...s.cashHistory, closed] };
-        }),
-      addMovement: (m) =>
-        set((s) => {
-          if (!s.cashRegister) return {};
-          const movement: CashMovement = { ...m, id: crypto.randomUUID(), date: new Date().toISOString() };
-          const isEntry = m.type === 'entry' || m.type === 'reforco';
-          return {
-            cashRegister: {
-              ...s.cashRegister,
-              entries: isEntry ? [...s.cashRegister.entries, movement] : s.cashRegister.entries,
-              exits: !isEntry ? [...s.cashRegister.exits, movement] : s.cashRegister.exits,
-            },
-          };
-        }),
-      deleteMovement: (movementId) =>
-        set((s) => {
-          if (!s.cashRegister) return {};
-          get().addAuditLog('MOVEMENT_DELETE', `Movimentação removida`);
-          return {
-            cashRegister: {
-              ...s.cashRegister,
-              entries: s.cashRegister.entries.filter(e => e.id !== movementId),
-              exits: s.cashRegister.exits.filter(e => e.id !== movementId),
-            },
-          };
-        }),
+  closeRegister: async (informedAmount) => {
+    const reg = get().cashRegister;
+    if (!reg) return;
+    const now = new Date().toISOString();
+    await supabase.from('cash_registers').update({ closed_at: now, informed_amount: informedAmount }).eq('id', reg.id);
+    const closed = { ...reg, closedAt: now, informedAmount };
+    set(s => ({ cashRegister: null, cashHistory: [...s.cashHistory, closed] }));
+    get().addAuditLog('REGISTER_CLOSE', 'Caixa fechado');
+  },
 
-      auditLogs: [],
-      addAuditLog: (action, details) =>
-        set((s) => ({
-          auditLogs: [
-            { id: crypto.randomUUID(), action, details, user: 'system', date: new Date().toISOString() },
-            ...s.auditLogs,
-          ].slice(0, 500),
-        })),
+  addMovement: async (m) => {
+    const reg = get().cashRegister;
+    if (!reg) return;
+    const { data, error } = await supabase.from('cash_movements').insert({
+      register_id: reg.id, type: m.type, amount: m.amount,
+      description: m.description, payment_method: m.paymentMethod || null, origin: m.origin || 'manual',
+    }).select().single();
+    if (error || !data) return;
+    const movement: CashMovement = { id: data.id, type: m.type, amount: m.amount, description: m.description, paymentMethod: m.paymentMethod, date: data.created_at!, origin: m.origin as any };
+    const isEntry = m.type === 'entry' || m.type === 'reforco';
+    set(s => ({
+      cashRegister: s.cashRegister ? {
+        ...s.cashRegister,
+        entries: isEntry ? [...s.cashRegister.entries, movement] : s.cashRegister.entries,
+        exits: !isEntry ? [...s.cashRegister.exits, movement] : s.cashRegister.exits,
+      } : s.cashRegister,
+    }));
+  },
 
-      // Borders
-      borders: DEMO_BORDERS,
-      addBorder: (b) => set((s) => ({ borders: [...s.borders, b] })),
-      updateBorder: (b) => set((s) => ({ borders: s.borders.map(x => x.id === b.id ? b : x) })),
-      deleteBorder: (id) => set((s) => ({ borders: s.borders.filter(x => x.id !== id) })),
+  deleteMovement: async (movementId) => {
+    await supabase.from('cash_movements').delete().eq('id', movementId);
+    set(s => ({
+      cashRegister: s.cashRegister ? {
+        ...s.cashRegister,
+        entries: s.cashRegister.entries.filter(e => e.id !== movementId),
+        exits: s.cashRegister.exits.filter(e => e.id !== movementId),
+      } : s.cashRegister,
+    }));
+    get().addAuditLog('MOVEMENT_DELETE', 'Movimentação removida');
+  },
 
-      // Free rules
-      freeBorderRules: [
-        { size: 'G', enabled: true },
-        { size: 'GG', enabled: true },
-      ],
-      setFreeBorderRules: (rules) => set({ freeBorderRules: rules }),
-      freeSodaRules: [
-        { size: 'G', enabled: false },
-        { size: 'GG', enabled: true },
-      ],
-      setFreeSodaRules: (rules) => set({ freeSodaRules: rules }),
+  // ===== BORDERS =====
+  addBorder: async (b) => {
+    const { error } = await supabase.from('borders').insert({
+      id: b.id, name: b.name, price: b.price, category: b.category,
+      active: b.active, free_sizes: b.freeSizes,
+    });
+    if (!error) set(s => ({ borders: [...s.borders, b] }));
+  },
+  updateBorder: async (b) => {
+    await supabase.from('borders').update({
+      name: b.name, price: b.price, category: b.category,
+      active: b.active, free_sizes: b.freeSizes,
+    }).eq('id', b.id);
+    set(s => ({ borders: s.borders.map(x => x.id === b.id ? b : x) }));
+  },
+  deleteBorder: async (id) => {
+    await supabase.from('borders').delete().eq('id', id);
+    set(s => ({ borders: s.borders.filter(x => x.id !== id) }));
+  },
 
-      // Soda products for free soda
-      sodaProducts: DEMO_SODAS,
-      setSodaProducts: (products) => set({ sodaProducts: products }),
-    }),
-    { name: 'bella-pizza-store' }
-  )
-);
+  // ===== RULES =====
+  setFreeBorderRules: async (rules) => {
+    for (const r of rules) {
+      await supabase.from('free_border_rules').upsert({ size: r.size, enabled: r.enabled }, { onConflict: 'size' });
+    }
+    set({ freeBorderRules: rules });
+  },
+  setFreeSodaRules: async (rules) => {
+    for (const r of rules) {
+      await supabase.from('free_soda_rules').upsert({ size: r.size, enabled: r.enabled }, { onConflict: 'size' });
+    }
+    set({ freeSodaRules: rules });
+  },
+  setSodaProducts: (products) => set({ sodaProducts: products }),
+
+  // ===== AUDIT =====
+  addAuditLog: async (action, details) => {
+    const { data } = await supabase.from('audit_logs').insert({ action, details }).select().single();
+    if (data) {
+      set(s => ({
+        auditLogs: [{ id: data.id, action, details, user: 'system', date: data.created_at! }, ...s.auditLogs].slice(0, 500),
+      }));
+    }
+  },
+}));

@@ -27,19 +27,19 @@ export default function Caixa() {
     [cashHistory, dateRange]
   );
 
-  const handleOpen = () => {
+  const handleOpen = async () => {
     const a = parseFloat(initialAmount);
     if (isNaN(a) || a < 0) { toast.error('Valor inválido'); return; }
-    openRegister(a); setInitialAmount(''); toast.success('Caixa aberto!');
+    await openRegister(a); setInitialAmount(''); toast.success('Caixa aberto!');
   };
-  const handleClose = () => {
+  const handleClose = async () => {
     if (!window.confirm('Fechar o caixa?')) return;
-    closeRegister(); toast.success('Caixa fechado!');
+    await closeRegister(); toast.success('Caixa fechado!');
   };
-  const handleMovement = () => {
+  const handleMovement = async () => {
     const a = parseFloat(movAmount);
     if (isNaN(a) || a <= 0) { toast.error('Valor inválido'); return; }
-    addMovement({ type: movType, amount: a, description: movDesc || movType, origin: 'manual' });
+    await addMovement({ type: movType, amount: a, description: movDesc || movType, origin: 'manual' });
     setMovAmount(''); setMovDesc(''); toast.success('Registrado');
   };
 
@@ -161,7 +161,7 @@ export default function Caixa() {
                               <span className={`font-semibold text-xs tabular-nums ${m._type === 'entry' ? 'text-success' : 'text-destructive'}`}>
                                 {m._type === 'entry' ? '+' : '-'}{formatCurrency(m.amount)}
                               </span>
-                              <button onClick={() => { deleteMovement(m.id); toast.success('Removida'); }}
+                              <button onClick={async () => { await deleteMovement(m.id); toast.success('Removida'); }}
                                 className="opacity-0 group-hover:opacity-100 text-destructive text-xs transition-opacity">✕</button>
                             </div>
                           </div>
