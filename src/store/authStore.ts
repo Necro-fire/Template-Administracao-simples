@@ -9,8 +9,9 @@ interface AuthState {
   pin: string;
   pinUnlocked: boolean;
   companyName: string;
+  dbLoaded: boolean;
 
-  login: (cnpj: string, password: string) => boolean;
+  login: (cnpj: string, password: string) => Promise<boolean>;
   logout: () => void;
   unlockPin: (pin: string) => boolean;
   lockPin: () => void;
@@ -35,7 +36,6 @@ async function saveToDb(key: string, value: string) {
 
 function parseDbValue(raw: unknown): string {
   if (typeof raw === 'string') {
-    // Handle double-encoded JSON strings like "\"value\""
     try {
       const parsed = JSON.parse(raw);
       if (typeof parsed === 'string') return parsed;
@@ -43,6 +43,20 @@ function parseDbValue(raw: unknown): string {
     return raw;
   }
   return String(raw);
+}
+
+async function fetchCredentialsFromDb(): Promise<Record<string, string>> {
+  const map: Record<string, string> = {};
+  try {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('key, value')
+      .in('key', ['auth_password', 'auth_pin', 'auth_cnpj', 'company_name']);
+    if (data) {
+      data.forEach(r => { map[r.key] = parseDbValue(r.value); });
+    }
+  } catch (_) { /* silent */ }
+  return map;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -53,33 +67,38 @@ export const useAuthStore = create<AuthState>()(
       password: '',
       pin: '',
       pinUnlocked: false,
-      companyName: 'Bella Pizza',
+      companyName: '',
+      dbLoaded: false,
 
       loadFromDb: async () => {
-        try {
-          const { data } = await supabase
-            .from('app_settings')
-            .select('key, value')
-            .in('key', ['auth_password', 'auth_pin', 'auth_cnpj', 'company_name']);
-          if (data) {
-            const map: Record<string, string> = {};
-            data.forEach(r => { map[r.key] = parseDbValue(r.value); });
-            const updates: Partial<AuthState> = {};
-            if (map.auth_password) updates.password = map.auth_password;
-            if (map.auth_pin) updates.pin = map.auth_pin;
-            if (map.auth_cnpj) updates.cnpj = map.auth_cnpj;
-            if (map.company_name) updates.companyName = map.company_name;
-            set(updates);
-          }
-        } catch (_) { /* silent */ }
+        const map = await fetchCredentialsFromDb();
+        set({
+          password: map.auth_password || '',
+          pin: map.auth_pin || '',
+          cnpj: map.auth_cnpj || '',
+          companyName: map.company_name || '',
+          dbLoaded: true,
+        });
       },
 
-      login: (cnpj, password) => {
-        const state = get();
+      login: async (cnpj, password) => {
+        // Always fetch fresh credentials from DB before validating
+        const map = await fetchCredentialsFromDb();
+        const dbCnpj = map.auth_cnpj || '';
+        const dbPassword = map.auth_password || '';
+
         const cleanInput = cnpj.replace(/\D/g, '');
-        const cleanStored = state.cnpj.replace(/\D/g, '');
-        if (cleanInput === cleanStored && password === state.password) {
-          set({ isAuthenticated: true });
+        const cleanStored = dbCnpj.replace(/\D/g, '');
+
+        if (cleanInput === cleanStored && password === dbPassword) {
+          set({
+            isAuthenticated: true,
+            password: dbPassword,
+            pin: map.auth_pin || '',
+            cnpj: dbCnpj,
+            companyName: map.company_name || '',
+            dbLoaded: true,
+          });
           return true;
         }
         return false;
@@ -138,6 +157,13 @@ export const useAuthStore = create<AuthState>()(
         saveToDb('auth_cnpj', cnpj);
       },
     }),
-    { name: 'bella-pizza-auth' }
+    {
+      name: 'bella-pizza-auth',
+      partialize: (state) => ({
+        // Only persist session state, NEVER credentials
+        isAuthenticated: state.isAuthenticated,
+        pinUnlocked: state.pinUnlocked,
+      }),
+    }
   )
 );
