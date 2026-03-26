@@ -245,7 +245,7 @@ export function Cart() {
                   <Input
                     value={deliveryAddress.street}
                     onChange={(e) => setDeliveryAddress({ ...deliveryAddress, street: e.target.value })}
-                    placeholder="Rua *"
+                    placeholder="Rua * (obrigatório)"
                     className="bg-card border-border h-7 text-xs"
                   />
                   <div className="flex gap-2">

@@ -157,7 +157,7 @@ export function PizzaBuilder({ open, onClose, initialFlavorId }: PizzaBuilderPro
   const isDoce = flavor1?.pizzaType === 'doce';
   const showBordasTab = categoryFilter === 'bordas' && !isDoce;
 
-  const showBordas = categoryFilter === 'bordas';
+  const showBordas = showBordasTab;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { onClose(); resetState(); } }}>
