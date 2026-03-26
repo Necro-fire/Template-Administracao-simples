@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -5,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { TopNav } from "@/components/TopNav";
 import { LoginPage } from "@/components/auth/LoginPage";
 import { useAuthStore } from "@/store/authStore";
+import { useStore } from "@/store/useStore";
 import PDV from "./pages/PDV";
 import Dashboard from "./pages/Dashboard";
 import Produtos from "./pages/Produtos";
