@@ -160,15 +160,6 @@ export default function Dashboard() {
       .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
   }, [datePreset, filtered]);
 
-  const extrema = useMemo(() => {
-    if (dailyData.length === 0) {
-      return { max: null as null | { date: string; revenue: number }, min: null as null | { date: string; revenue: number } };
-    }
-
-    const max = dailyData.reduce((acc, point) => point.revenue > acc.revenue ? point : acc, dailyData[0]);
-    const min = dailyData.reduce((acc, point) => point.revenue < acc.revenue ? point : acc, dailyData[0]);
-    return { max, min };
-  }, [dailyData]);
 
   const paymentData = useMemo(() => {
     const map: Record<string, number> = {};
