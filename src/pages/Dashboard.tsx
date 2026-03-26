@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, CreditCard, Receipt, Pizza } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { Sale } from '@/types/pizzaria';
+import { PizzaSize, Sale } from '@/types/pizzaria';
 
 const CHART_COLORS = [
   'hsl(var(--primary))', 'hsl(var(--success))', 'hsl(var(--info))',
@@ -85,7 +85,7 @@ export default function Dashboard() {
         observations: sale.observations || [],
         cancelled: sale.cancelled || false,
         cancelledAt: sale.cancelled_at || undefined,
-        deliveryMode: sale.delivery_mode,
+        deliveryMode: sale.delivery_mode as any,
         deliveryAddress: sale.delivery_address as any,
         deliveryFee: Number(sale.delivery_fee) || 0,
         payments: (sale.payments || []) as any,
@@ -96,7 +96,7 @@ export default function Dashboard() {
             product: item.product_data as any,
             quantity: item.quantity || 1,
             observations: item.observations || [],
-            pizzaSize: item.pizza_size || undefined,
+            pizzaSize: (item.pizza_size as PizzaSize | null) || undefined,
             secondFlavor: item.second_flavor as any,
             calculatedPrice: Number(item.calculated_price),
             border: item.border_data as any,
