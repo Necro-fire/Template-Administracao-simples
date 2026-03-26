@@ -105,6 +105,18 @@ export default function Produtos() {
     }
   };
 
+  // Soda handlers
+  const openNewSoda = () => { setSodaForm({ name: '', icon: '🥤', price: 0, cost: 0, active: true }); setEditingSoda(null); setSodaDialogOpen(true); };
+  const openEditSoda = (s: Product) => { setSodaForm({ name: s.name, icon: s.icon, price: s.price, cost: s.cost, active: s.active }); setEditingSoda(s); setSodaDialogOpen(true); };
+  const handleSaveSoda = async () => {
+    if (!sodaForm.name.trim()) { toast.error('Nome obrigatório'); return; }
+    const p: Product = { id: editingSoda?.id || crypto.randomUUID(), name: sodaForm.name, category: 'bebida' as Category, icon: sodaForm.icon, price: sodaForm.price, cost: sodaForm.cost, active: sodaForm.active };
+    if (editingSoda) { await updateSodaProduct(p); toast.success('Refrigerante atualizado'); }
+    else { await addSodaProduct(p); toast.success('Refrigerante adicionado'); }
+    setSodaDialogOpen(false);
+  };
+  const confirmDeleteSoda = async () => { if (deleteSodaConfirm) { await deleteSodaProduct(deleteSodaConfirm); toast.success('Refrigerante removido'); setDeleteSodaConfirm(null); } };
+
   return (
     <PinGuard title="Produtos">
       <div className="p-4 space-y-4 animate-fade-in">
