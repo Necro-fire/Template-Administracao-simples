@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 export type DatePreset = 'today' | 'yesterday' | '7days' | '30days' | 'custom';
 
 interface DateFilterProps {
-  onFilter: (start: Date, end: Date) => void;
+  onFilter: (start: Date, end: Date, preset?: DatePreset) => void;
 }
 
 export function DateFilter({ onFilter }: DateFilterProps) {
@@ -28,7 +28,7 @@ export function DateFilter({ onFilter }: DateFilterProps) {
       case 'custom': return;
       default: start = startOfDay(now);
     }
-    onFilter(start, end);
+    onFilter(start, end, p);
   };
 
   const applyCustom = () => {
@@ -36,7 +36,7 @@ export function DateFilter({ onFilter }: DateFilterProps) {
     const s = new Date(customStart + 'T00:00:00');
     const e = new Date(customEnd + 'T23:59:59');
     if (e < s) { toast.error('Data final não pode ser menor que a inicial'); return; }
-    onFilter(s, endOfDay(e));
+    onFilter(s, endOfDay(e), 'custom');
   };
 
   const presets: { value: DatePreset; label: string }[] = [
