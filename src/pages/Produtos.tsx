@@ -352,7 +352,7 @@ export default function Produtos() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Borda grátis por tamanho</label>
-                <div className="grid grid-cols-5 gap-2 mt-1">
+                <div className="grid grid-cols-4 gap-2 mt-1">
                   {PIZZA_SIZES.map(sz => (
                     <button key={sz.value} onClick={() => toggleBorderFreeSize(sz.value)}
                       className={`p-2 rounded-lg border text-center text-xs font-medium transition-all ${
