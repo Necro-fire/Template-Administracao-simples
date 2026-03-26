@@ -23,7 +23,7 @@ export function Cart() {
   const [editingObsId, setEditingObsId] = useState<string | null>(null);
   const [lastSale, setLastSale] = useState<any>(null);
   const [showReceiptConfirm, setShowReceiptConfirm] = useState(false);
-  const [showReceipt, setShowReceipt] = useState(false);
+  const [showReceiptDialog, setShowReceiptDialog] = useState(false);
 
   // Delivery state
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>('retirada');
