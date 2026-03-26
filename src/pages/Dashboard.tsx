@@ -9,7 +9,7 @@ import {
   PieChart, Pie, Cell, CartesianGrid, Legend,
   AreaChart, Area,
 } from 'recharts';
-import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, CreditCard, Receipt } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, CreditCard, Receipt, Pizza } from 'lucide-react';
 
 const CHART_COLORS = [
   'hsl(var(--primary))', 'hsl(var(--success))', 'hsl(var(--info))',
@@ -24,6 +24,12 @@ const tooltipStyle = {
   color: 'hsl(var(--foreground))',
 };
 
+const EmptyState = ({ message }: { message: string }) => (
+  <div className="h-[200px] flex items-center justify-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+    {message}
+  </div>
+);
+
 export default function Dashboard() {
   const { sales, cashRegister, products } = useStore();
   const [dateRange, setDateRange] = useState({ start: startOfDay(new Date()), end: endOfDay(new Date()) });
@@ -37,7 +43,7 @@ export default function Dashboard() {
   const totalCost = filtered.reduce((s, sale) => s + sale.items.reduce((c, i) => {
     const cost = i.product.category === 'pizza' && i.pizzaSize && i.product.pizzaCosts
       ? i.product.pizzaCosts[i.pizzaSize] : i.product.cost;
-    return c + cost * i.quantity;
+    return c + (cost || 0) * i.quantity;
   }, 0), 0);
   const profit = totalRevenue - totalCost;
   const avgTicket = filtered.length > 0 ? totalRevenue / filtered.length : 0;
@@ -62,7 +68,7 @@ export default function Dashboard() {
       map[d].cost += s.items.reduce((c, i) => {
         const cost = i.product.category === 'pizza' && i.pizzaSize && i.product.pizzaCosts
           ? i.product.pizzaCosts[i.pizzaSize] : i.product.cost;
-        return c + cost * i.quantity;
+        return c + (cost || 0) * i.quantity;
       }, 0);
     });
     return Object.entries(map).map(([date, v]) => ({ date, ...v, profit: v.revenue - v.cost }));
@@ -76,21 +82,38 @@ export default function Dashboard() {
     return Object.entries(map).map(([name, value]) => ({ name, value }));
   }, [filtered]);
 
-  const topProducts = useMemo(() => {
-    const map: Record<string, { name: string; qty: number; revenue: number }> = {};
+  // Top 3 pizzas - 1 flavor
+  const top1Flavor = useMemo(() => {
+    const map: Record<string, { name: string; qty: number }> = {};
     filtered.forEach(s => s.items.forEach(i => {
-      const key = i.product.id;
-      if (!map[key]) map[key] = { name: i.product.name, qty: 0, revenue: 0 };
-      map[key].qty += i.quantity;
-      map[key].revenue += i.calculatedPrice * i.quantity;
+      if (i.product.category === 'pizza' && !i.secondFlavor) {
+        const key = i.product.id;
+        if (!map[key]) map[key] = { name: i.product.name, qty: 0 };
+        map[key].qty += i.quantity;
+      }
     }));
-    return Object.values(map).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+    return Object.values(map).sort((a, b) => b.qty - a.qty).slice(0, 3);
+  }, [filtered]);
+
+  // Top 3 pizzas - 2 flavors
+  const top2Flavors = useMemo(() => {
+    const map: Record<string, { name: string; qty: number }> = {};
+    filtered.forEach(s => s.items.forEach(i => {
+      if (i.product.category === 'pizza' && i.secondFlavor) {
+        const key = `${i.product.name} / ${i.secondFlavor.name}`;
+        if (!map[key]) map[key] = { name: key, qty: 0 };
+        map[key].qty += i.quantity;
+      }
+    }));
+    return Object.values(map).sort((a, b) => b.qty - a.qty).slice(0, 3);
   }, [filtered]);
 
   const PAYMENT_LABELS: Record<string, string> = {
     dinheiro: 'Dinheiro', pix: 'Pix',
     debito: 'Débito', credito: 'Crédito',
   };
+
+  const noData = filtered.length === 0;
 
   return (
     <PinGuard title="Dashboard">
@@ -110,6 +133,13 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {noData && (
+          <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 text-center">
+            <p className="text-sm text-warning font-medium">Nenhum dado encontrado neste período</p>
+            <p className="text-xs text-muted-foreground mt-1">Tente alterar o filtro de datas</p>
+          </div>
+        )}
+
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           <KpiCard label="Vendas" value={String(filtered.length)} sub={`${totalItems} itens vendidos`} icon={<ShoppingCart className="w-4 h-4" />} variant="info" />
@@ -121,7 +151,6 @@ export default function Dashboard() {
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Revenue & Profit area chart */}
           <div className="lg:col-span-2 bg-card border border-border rounded-lg p-5">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Receita & Lucro</h3>
             {dailyData.length > 0 ? (
@@ -147,11 +176,10 @@ export default function Dashboard() {
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[240px] flex items-center justify-center text-xs text-muted-foreground">Sem dados no período</div>
+              <EmptyState message="Nenhum dado encontrado neste período" />
             )}
           </div>
 
-          {/* Category pie chart */}
           <div className="bg-card border border-border rounded-lg p-5">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Por Categoria</h3>
             {categoryData.length > 0 ? (
@@ -165,13 +193,56 @@ export default function Dashboard() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[240px] flex items-center justify-center text-xs text-muted-foreground">Sem dados</div>
+              <EmptyState message="Nenhum dado encontrado neste período" />
             )}
           </div>
         </div>
 
-        {/* Bottom Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Top Pizzas + Payments */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Top Pizzas */}
+          <div className="lg:col-span-2 bg-card border border-border rounded-lg p-5">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+              <Pizza className="w-3.5 h-3.5" /> Pizzas Mais Vendidas
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 1 Flavor */}
+              <div>
+                <p className="text-[11px] font-semibold text-foreground mb-2">🍕 Mais vendidas (1 sabor)</p>
+                {top1Flavor.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {top1Flavor.map((p, i) => (
+                      <div key={p.name} className="flex items-center gap-2 bg-secondary/50 rounded-lg px-3 py-2 border border-border/50">
+                        <span className="text-xs font-bold text-primary w-5 text-center">{i + 1}º</span>
+                        <span className="text-xs font-medium flex-1 truncate">{p.name}</span>
+                        <span className="text-xs text-muted-foreground tabular-nums">{p.qty}x</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground py-4 text-center">Sem dados</p>
+                )}
+              </div>
+              {/* 2 Flavors */}
+              <div>
+                <p className="text-[11px] font-semibold text-foreground mb-2">🍕🍕 Mais vendidas (2 sabores)</p>
+                {top2Flavors.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {top2Flavors.map((p, i) => (
+                      <div key={p.name} className="flex items-center gap-2 bg-secondary/50 rounded-lg px-3 py-2 border border-border/50">
+                        <span className="text-xs font-bold text-info w-5 text-center">{i + 1}º</span>
+                        <span className="text-xs font-medium flex-1 truncate">{p.name}</span>
+                        <span className="text-xs text-muted-foreground tabular-nums">{p.qty}x</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground py-4 text-center">Sem dados</p>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Payment Methods */}
           <div className="bg-card border border-border rounded-lg p-5">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -196,30 +267,7 @@ export default function Dashboard() {
                 })}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground text-center py-8">Sem dados</p>
-            )}
-          </div>
-
-          {/* Top Products */}
-          <div className="bg-card border border-border rounded-lg p-5">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Receipt className="w-3.5 h-3.5" /> Produtos Mais Vendidos
-            </h3>
-            {topProducts.length > 0 ? (
-              <div className="space-y-2">
-                {topProducts.map((p, i) => (
-                  <div key={p.name} className="flex items-center gap-3 bg-secondary/50 rounded-lg px-3 py-2.5 border border-border/50">
-                    <span className="text-sm font-bold text-muted-foreground w-5 text-center tabular-nums">{i + 1}º</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate text-foreground">{p.name}</p>
-                      <p className="text-[11px] text-muted-foreground">{p.qty} unidade{p.qty > 1 ? 's' : ''}</p>
-                    </div>
-                    <p className="text-sm font-bold text-primary tabular-nums">{formatCurrency(p.revenue)}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground text-center py-8">Sem dados</p>
+              <EmptyState message="Nenhum dado encontrado neste período" />
             )}
           </div>
         </div>

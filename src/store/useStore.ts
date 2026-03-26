@@ -21,6 +21,7 @@ const mapBorder = (row: any): PizzaBorder => ({
   id: row.id,
   name: row.name,
   price: Number(row.price) || 0,
+  cost: Number(row.cost) || 0,
   category: (row.category || 'tradicional') as BorderCategory,
   active: row.active ?? true,
   freeSizes: (row.free_sizes || []) as PizzaSize[],
@@ -81,6 +82,11 @@ interface AppState {
   addBorder: (b: PizzaBorder) => Promise<void>;
   updateBorder: (b: PizzaBorder) => Promise<void>;
   deleteBorder: (id: string) => Promise<void>;
+
+  // Soda products CRUD
+  addSodaProduct: (p: Product) => Promise<void>;
+  updateSodaProduct: (p: Product) => Promise<void>;
+  deleteSodaProduct: (id: string) => Promise<void>;
 
   // Rules
   setFreeBorderRules: (rules: FreeBorderRule[]) => Promise<void>;
@@ -376,14 +382,14 @@ export const useStore = create<AppState>()((set, get) => ({
   // ===== BORDERS =====
   addBorder: async (b) => {
     const { error } = await supabase.from('borders').insert({
-      id: b.id, name: b.name, price: b.price, category: b.category,
+      id: b.id, name: b.name, price: b.price, cost: b.cost, category: b.category,
       active: b.active, free_sizes: b.freeSizes,
     });
     if (!error) set(s => ({ borders: [...s.borders, b] }));
   },
   updateBorder: async (b) => {
     await supabase.from('borders').update({
-      name: b.name, price: b.price, category: b.category,
+      name: b.name, price: b.price, cost: b.cost, category: b.category,
       active: b.active, free_sizes: b.freeSizes,
     }).eq('id', b.id);
     set(s => ({ borders: s.borders.map(x => x.id === b.id ? b : x) }));
@@ -391,6 +397,24 @@ export const useStore = create<AppState>()((set, get) => ({
   deleteBorder: async (id) => {
     await supabase.from('borders').delete().eq('id', id);
     set(s => ({ borders: s.borders.filter(x => x.id !== id) }));
+  },
+
+  // ===== SODA PRODUCTS CRUD =====
+  addSodaProduct: async (p) => {
+    const { error } = await supabase.from('soda_products').insert({
+      id: p.id, name: p.name, icon: p.icon, price: p.price, cost: p.cost, active: p.active,
+    });
+    if (!error) set(s => ({ sodaProducts: [...s.sodaProducts, p] }));
+  },
+  updateSodaProduct: async (p) => {
+    await supabase.from('soda_products').update({
+      name: p.name, icon: p.icon, price: p.price, cost: p.cost, active: p.active,
+    }).eq('id', p.id);
+    set(s => ({ sodaProducts: s.sodaProducts.map(x => x.id === p.id ? p : x) }));
+  },
+  deleteSodaProduct: async (id) => {
+    await supabase.from('soda_products').delete().eq('id', id);
+    set(s => ({ sodaProducts: s.sodaProducts.filter(x => x.id !== id) }));
   },
 
   // ===== RULES =====

@@ -136,6 +136,7 @@ export interface PizzaBorder {
   id: string;
   name: string;
   price: number;
+  cost: number;
   category: BorderCategory;
   active: boolean;
   freeSizes: PizzaSize[];

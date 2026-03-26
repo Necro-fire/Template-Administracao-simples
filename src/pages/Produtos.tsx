@@ -23,7 +23,7 @@ const emptyProduct: Omit<Product, 'id'> = {
 };
 
 const emptyBorder: Omit<PizzaBorder, 'id'> = {
-  name: '', price: 0, category: 'tradicional', active: true, freeSizes: [],
+  name: '', price: 0, cost: 0, category: 'tradicional', active: true, freeSizes: [],
 };
 
 export default function Produtos() {
@@ -32,7 +32,7 @@ export default function Produtos() {
     borders, addBorder, updateBorder, deleteBorder,
     freeBorderRules, setFreeBorderRules,
     freeSodaRules, setFreeSodaRules,
-    sodaProducts,
+    sodaProducts, addSodaProduct, updateSodaProduct, deleteSodaProduct,
   } = useStore();
   const { pinUnlocked } = useAuthStore();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -47,6 +47,12 @@ export default function Produtos() {
   const [editingBorder, setEditingBorder] = useState<PizzaBorder | null>(null);
   const [borderForm, setBorderForm] = useState<Omit<PizzaBorder, 'id'>>(emptyBorder);
   const [deleteBorderConfirm, setDeleteBorderConfirm] = useState<string | null>(null);
+
+  // Soda dialog
+  const [sodaDialogOpen, setSodaDialogOpen] = useState(false);
+  const [editingSoda, setEditingSoda] = useState<Product | null>(null);
+  const [sodaForm, setSodaForm] = useState({ name: '', icon: '🥤', price: 0, cost: 0, active: true });
+  const [deleteSodaConfirm, setDeleteSodaConfirm] = useState<string | null>(null);
 
   const filtered = products.filter(p => filterCat === 'all' || p.category === filterCat);
   const isPizza = form.category === 'pizza';
@@ -99,6 +105,18 @@ export default function Produtos() {
     }
   };
 
+  // Soda handlers
+  const openNewSoda = () => { setSodaForm({ name: '', icon: '🥤', price: 0, cost: 0, active: true }); setEditingSoda(null); setSodaDialogOpen(true); };
+  const openEditSoda = (s: Product) => { setSodaForm({ name: s.name, icon: s.icon, price: s.price, cost: s.cost, active: s.active }); setEditingSoda(s); setSodaDialogOpen(true); };
+  const handleSaveSoda = async () => {
+    if (!sodaForm.name.trim()) { toast.error('Nome obrigatório'); return; }
+    const p: Product = { id: editingSoda?.id || crypto.randomUUID(), name: sodaForm.name, category: 'bebida' as Category, icon: sodaForm.icon, price: sodaForm.price, cost: sodaForm.cost, active: sodaForm.active };
+    if (editingSoda) { await updateSodaProduct(p); toast.success('Refrigerante atualizado'); }
+    else { await addSodaProduct(p); toast.success('Refrigerante adicionado'); }
+    setSodaDialogOpen(false);
+  };
+  const confirmDeleteSoda = async () => { if (deleteSodaConfirm) { await deleteSodaProduct(deleteSodaConfirm); toast.success('Refrigerante removido'); setDeleteSodaConfirm(null); } };
+
   return (
     <PinGuard title="Produtos">
       <div className="p-4 space-y-4 animate-fade-in">
@@ -113,6 +131,7 @@ export default function Produtos() {
           <TabsList className="bg-secondary border border-border">
             <TabsTrigger value="produtos">📦 Produtos</TabsTrigger>
             <TabsTrigger value="bordas">🧀 Bordas</TabsTrigger>
+            <TabsTrigger value="refrigerantes">🥤 Refrigerantes</TabsTrigger>
             <TabsTrigger value="regras">🎁 Regras de Grátis</TabsTrigger>
           </TabsList>
 
@@ -208,6 +227,40 @@ export default function Produtos() {
                 </div>
               ))}
               {borders.length === 0 && <p className="col-span-full text-muted-foreground text-center py-12">Nenhuma borda cadastrada</p>}
+            </div>
+          </TabsContent>
+
+          {/* ===== REFRIGERANTES TAB ===== */}
+          <TabsContent value="refrigerantes" className="space-y-4 mt-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">Gerencie refrigerantes disponíveis para cortesia</p>
+              <Button onClick={openNewSoda} className="bg-primary hover:bg-primary/90 gap-1.5 font-bold">
+                <Plus className="w-4 h-4" /> Novo Refrigerante
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {sodaProducts.map(s => (
+                <div key={s.id} className={`glass-card p-4 flex items-center gap-3 transition-all hover:border-primary/30 ${!s.active ? 'opacity-50' : ''}`}>
+                  <span className="text-3xl">{s.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm truncate">{s.name}</p>
+                    <p className="text-sm text-primary font-bold">{formatCurrency(s.price)}</p>
+                    <p className="text-[10px] text-destructive flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" /> Custo: {formatCurrency(s.cost)}
+                    </p>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => openEditSoda(s)} className="p-2 rounded-lg bg-secondary hover:bg-accent transition-colors">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => setDeleteSodaConfirm(s.id)} className="p-2 rounded-lg bg-secondary hover:bg-destructive/20 text-destructive transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {sodaProducts.length === 0 && <p className="col-span-full text-muted-foreground text-center py-12">Nenhum refrigerante cadastrado</p>}
             </div>
           </TabsContent>
 
@@ -369,6 +422,10 @@ export default function Produtos() {
                 <Input type="number" step="0.01" value={borderForm.price||''} onChange={e => setBorderForm({...borderForm, price: parseFloat(e.target.value)||0})} className="bg-secondary border-border" />
               </div>
               <div>
+                <label className="text-xs text-muted-foreground flex items-center gap-1"><Lock className="w-3 h-3" /> Custo (R$)</label>
+                <Input type="number" step="0.01" value={borderForm.cost||''} onChange={e => setBorderForm({...borderForm, cost: parseFloat(e.target.value)||0})} className="bg-secondary border-border" />
+              </div>
+              <div>
                 <label className="text-xs text-muted-foreground">Categoria</label>
                 <div className="flex gap-2 mt-1">
                   {(['tradicional', 'premium'] as BorderCategory[]).map(cat => (
@@ -406,6 +463,28 @@ export default function Produtos() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Soda Edit Dialog */}
+        <Dialog open={sodaDialogOpen} onOpenChange={setSodaDialogOpen}>
+          <DialogContent className="bg-card border-border max-w-sm">
+            <DialogHeader><DialogTitle>{editingSoda ? 'Editar' : 'Novo'} Refrigerante</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground">Nome *</label>
+                <Input value={sodaForm.name} onChange={e => setSodaForm({...sodaForm, name: e.target.value})} className="bg-secondary border-border" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Preço (R$)</label>
+                <Input type="number" step="0.01" value={sodaForm.price||''} onChange={e => setSodaForm({...sodaForm, price: parseFloat(e.target.value)||0})} className="bg-secondary border-border" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground flex items-center gap-1"><Lock className="w-3 h-3" /> Custo (R$)</label>
+                <Input type="number" step="0.01" value={sodaForm.cost||''} onChange={e => setSodaForm({...sodaForm, cost: parseFloat(e.target.value)||0})} className="bg-secondary border-border" />
+              </div>
+              <Button onClick={handleSaveSoda} className="w-full bg-primary hover:bg-primary/90 font-bold">{editingSoda ? 'Salvar' : 'Adicionar'}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Delete product confirm */}
@@ -432,6 +511,20 @@ export default function Produtos() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeleteBorder}>Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete soda confirm */}
+      <AlertDialog open={!!deleteSodaConfirm} onOpenChange={(open) => !open && setDeleteSodaConfirm(null)}>
+        <AlertDialogContent className="bg-card border-border max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover refrigerante?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteSoda}>Remover</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

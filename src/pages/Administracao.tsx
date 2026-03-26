@@ -29,12 +29,12 @@ export default function Administracao() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<PizzaBorder | null>(null);
   const [form, setForm] = useState<Omit<PizzaBorder, 'id'>>({
-    name: '', price: 0, category: 'tradicional', active: true, freeSizes: [],
+    name: '', price: 0, cost: 0, category: 'tradicional', active: true, freeSizes: [],
   });
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const openNew = () => {
-    setForm({ name: '', price: 0, category: 'tradicional', active: true, freeSizes: [] });
+    setForm({ name: '', price: 0, cost: 0, category: 'tradicional', active: true, freeSizes: [] });
     setEditing(null);
     setDialogOpen(true);
   };
