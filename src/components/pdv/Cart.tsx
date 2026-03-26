@@ -63,11 +63,10 @@ export function Cart() {
 
   const handleFinalize = () => {
     if (!guardCaixa()) return;
-    if (!customerName.trim()) { toast.error('Informe o nome do cliente'); return; }
     if (totalPaid < total) { toast.error('Pagamento insuficiente'); return; }
     if (deliveryMode === 'entrega') {
-      if (!deliveryAddress.phone || !deliveryAddress.street || !deliveryAddress.number || !deliveryAddress.neighborhood) {
-        toast.error('Preencha os campos obrigatórios do endereço');
+      if (!deliveryAddress.street.trim() || !deliveryAddress.neighborhood.trim()) {
+        toast.error('Preencha Rua e Bairro para entrega');
         return;
       }
     }
@@ -193,7 +192,7 @@ export function Cart() {
             </div>
           ) : (
             <div className="space-y-3 animate-fade-in max-h-[40vh] overflow-y-auto pr-1">
-              <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Nome do cliente *" className="bg-secondary border-border h-8 text-xs" />
+              <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Nome do cliente (opcional)" className="bg-secondary border-border h-8 text-xs" />
               <Input
                 value={customerContact}
                 onChange={(e) => setCustomerContact(maskPhone(e.target.value))}
@@ -226,9 +225,15 @@ export function Cart() {
                 <div className="space-y-2 bg-secondary/50 border border-border rounded-lg p-2.5">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Endereço de Entrega</p>
                   <Input
+                    value={deliveryAddress.name || ''}
+                    onChange={(e) => setDeliveryAddress({ ...deliveryAddress, name: e.target.value })}
+                    placeholder="Nome (opcional)"
+                    className="bg-card border-border h-7 text-xs"
+                  />
+                  <Input
                     value={deliveryAddress.phone}
                     onChange={(e) => setDeliveryAddress({ ...deliveryAddress, phone: maskPhone(e.target.value) })}
-                    placeholder="Telefone *"
+                    placeholder="Telefone (opcional)"
                     className="bg-card border-border h-7 text-xs"
                   />
                   <Input
@@ -240,14 +245,14 @@ export function Cart() {
                   <Input
                     value={deliveryAddress.street}
                     onChange={(e) => setDeliveryAddress({ ...deliveryAddress, street: e.target.value })}
-                    placeholder="Rua *"
+                    placeholder="Rua * (obrigatório)"
                     className="bg-card border-border h-7 text-xs"
                   />
                   <div className="flex gap-2">
                     <Input
                       value={deliveryAddress.number}
                       onChange={(e) => setDeliveryAddress({ ...deliveryAddress, number: e.target.value.replace(/\D/g, '') })}
-                      placeholder="Nº *"
+                      placeholder="Nº (opcional)"
                       className="bg-card border-border h-7 text-xs w-20"
                     />
                     <Input
@@ -334,7 +339,7 @@ export function Cart() {
               <div className="flex gap-2">
                 <Button
                   onClick={handleFinalize}
-                  disabled={totalPaid < total || !customerName.trim()}
+                  disabled={totalPaid < total}
                   className="flex-1 bg-success hover:bg-success/90 text-success-foreground font-bold disabled:opacity-50"
                 >
                   Finalizar Venda
