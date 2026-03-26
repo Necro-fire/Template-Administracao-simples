@@ -292,7 +292,7 @@ export default function Produtos() {
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground">Preços *</label>
-                  <div className="grid grid-cols-5 gap-2 mt-1">
+                  <div className="grid grid-cols-4 gap-2 mt-1">
                     {PIZZA_SIZES.map(s => (
                       <div key={s.value}><span className="text-[10px] text-muted-foreground">{s.value}</span>
                         <Input type="number" step="0.01" value={form.pizzaPrices?.[s.value]||''} onChange={e => setForm({...form,pizzaPrices:{...form.pizzaPrices!,[s.value]:parseFloat(e.target.value)||0}})} className="bg-secondary border-border h-8 text-xs" />
