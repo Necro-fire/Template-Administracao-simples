@@ -11,6 +11,25 @@ import {
   Smartphone, Globe, FileText, CheckCircle2, XCircle, MinusCircle,
 } from 'lucide-react';
 
+function CurrencyField({ label, value, onChange, icon, required }: {
+  label: string; value: string; onChange: (v: string) => void;
+  icon: React.ReactNode; required?: boolean;
+}) {
+  return (
+    <div>
+      <label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-1 flex items-center gap-1.5">
+        {icon} {label} {required && <span className="text-destructive">*</span>}
+      </label>
+      <Input
+        value={value}
+        onChange={e => onChange(maskCurrency(e.target.value))}
+        placeholder="R$ 0,00"
+        className="bg-secondary border-border h-9 text-sm font-mono"
+      />
+    </div>
+  );
+}
+
 interface CloseRegisterDialogProps {
   open: boolean;
   onClose: () => void;
