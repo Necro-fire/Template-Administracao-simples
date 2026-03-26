@@ -28,8 +28,8 @@ const emptyBorder: Omit<PizzaBorder, 'id'> = {
   name: '', price: 0, cost: 0, active: true, freeSizes: [],
 };
 
-const emptySoda: Omit<SodaProduct, 'id' | 'freeSizes'> = {
-  name: '', icon: '🥤', price: 0, cost: 0, active: true, size: '1L',
+const emptySoda: Omit<SodaProduct, 'id'> = {
+  name: '', icon: '🥤', price: 0, cost: 0, active: true, size: '1L', freeSizes: [],
 };
 
 export default function Produtos() {
