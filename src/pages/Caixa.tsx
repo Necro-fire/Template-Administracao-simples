@@ -63,8 +63,8 @@ export default function Caixa() {
 
   const handleMovement = async () => {
     if (!isOpen) { setErrorAlert('Caixa fechado. Abra o caixa para continuar.'); return; }
-    const a = parseFloat(movAmount);
-    if (isNaN(a) || a <= 0) { setErrorAlert('Informe um valor válido para a movimentação.'); return; }
+    const a = parseCurrency(movAmount);
+    if (a <= 0) { setErrorAlert('Informe um valor válido para a movimentação.'); return; }
     await addMovement({ type: movType, amount: a, description: movDesc || movType, origin: 'manual' });
     setMovAmount(''); setMovDesc('');
     setSuccessAlert('Movimentação registrada com sucesso!');
