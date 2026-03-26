@@ -68,11 +68,11 @@ export function ProfessionalAlert({
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className={cn(
-        'sm:max-w-[420px] bg-card/95 backdrop-blur-xl border shadow-2xl p-0 gap-0 overflow-hidden',
+        'sm:max-w-[420px] bg-card/95 backdrop-blur-xl border shadow-2xl p-0 gap-0 overflow-hidden [&>button]:hidden',
         config.borderColor,
       )}>
         {/* Top accent bar */}
-        <div className={cn('h-1', config.bgIcon.replace('/10', ''))} style={{
+        <div className={cn('h-1')} style={{
           background: variant === 'success' ? 'hsl(var(--success))' :
             variant === 'error' ? 'hsl(var(--destructive))' :
             variant === 'warning' ? 'hsl(var(--warning))' :
@@ -91,9 +91,6 @@ export function ProfessionalAlert({
                 <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{description}</p>
               )}
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-secondary transition-colors shrink-0">
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
           </div>
 
           {/* Custom content */}

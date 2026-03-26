@@ -28,8 +28,8 @@ const emptyBorder: Omit<PizzaBorder, 'id'> = {
   name: '', price: 0, cost: 0, active: true, freeSizes: [],
 };
 
-const emptySoda: Omit<SodaProduct, 'id' | 'freeSizes'> = {
-  name: '', icon: '🥤', price: 0, cost: 0, active: true, size: '1L',
+const emptySoda: Omit<SodaProduct, 'id'> = {
+  name: '', icon: '🥤', price: 0, cost: 0, active: true, size: '1L', freeSizes: [],
 };
 
 export default function Produtos() {
@@ -55,7 +55,7 @@ export default function Produtos() {
   // Soda dialog
   const [sodaDialogOpen, setSodaDialogOpen] = useState(false);
   const [editingSoda, setEditingSoda] = useState<SodaProduct | null>(null);
-  const [sodaForm, setSodaForm] = useState<Omit<SodaProduct, 'id' | 'freeSizes'>>(emptySoda);
+  const [sodaForm, setSodaForm] = useState<Omit<SodaProduct, 'id'>>(emptySoda);
   const [deleteSodaConfirm, setDeleteSodaConfirm] = useState<string | null>(null);
 
   const filtered = products.filter(p => filterCat === 'all' || p.category === filterCat);
@@ -93,15 +93,19 @@ export default function Produtos() {
 
   // Soda handlers
   const openNewSoda = () => { setSodaForm({ ...emptySoda }); setEditingSoda(null); setSodaDialogOpen(true); };
-  const openEditSoda = (s: SodaProduct) => { setSodaForm({ name: s.name, icon: s.icon, price: s.price, cost: s.cost, active: s.active, size: s.size }); setEditingSoda(s); setSodaDialogOpen(true); };
+  const openEditSoda = (s: SodaProduct) => { setSodaForm({ name: s.name, icon: s.icon, price: s.price, cost: s.cost, active: s.active, size: s.size, freeSizes: [...(s.freeSizes || [])] }); setEditingSoda(s); setSodaDialogOpen(true); };
   const handleSaveSoda = async () => {
     if (!sodaForm.name.trim()) { toast.error('Nome obrigatório'); return; }
-    const p: SodaProduct = { id: editingSoda?.id || crypto.randomUUID(), ...sodaForm, freeSizes: [] };
+    const p: SodaProduct = { id: editingSoda?.id || crypto.randomUUID(), ...sodaForm };
     if (editingSoda) { await updateSodaProduct(p); toast.success('Refrigerante atualizado'); }
     else { await addSodaProduct(p); toast.success('Refrigerante adicionado'); }
     setSodaDialogOpen(false);
   };
   const confirmDeleteSoda = async () => { if (deleteSodaConfirm) { await deleteSodaProduct(deleteSodaConfirm); toast.success('Refrigerante removido'); setDeleteSodaConfirm(null); } };
+  const toggleSodaFreeSize = (sz: PizzaSize) => {
+    const current = sodaForm.freeSizes || [];
+    setSodaForm({ ...sodaForm, freeSizes: current.includes(sz) ? current.filter(s => s !== sz) : [...current, sz] });
+  };
 
   return (
     <PinGuard title="Produtos">
@@ -405,6 +409,22 @@ export default function Produtos() {
               <div>
                 <label className="text-xs text-muted-foreground flex items-center gap-1"><Lock className="w-3 h-3" /> Custo (R$)</label>
                 <Input type="number" step="0.01" value={sodaForm.cost||''} onChange={e => setSodaForm({...sodaForm, cost: parseFloat(e.target.value)||0})} className="bg-secondary border-border" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground flex items-center gap-1"><Gift className="w-3 h-3" /> Grátis por tamanho de pizza</label>
+                <div className="grid grid-cols-4 gap-2 mt-1">
+                  {PIZZA_SIZES.map(sz => (
+                    <button key={sz.value} onClick={() => toggleSodaFreeSize(sz.value)}
+                      className={`p-2 rounded-lg border text-center text-xs font-medium transition-all ${
+                        (sodaForm.freeSizes || []).includes(sz.value)
+                          ? 'bg-success/10 border-success/30 text-success'
+                          : 'bg-secondary border-border text-muted-foreground'
+                      }`}>
+                      {sz.value}
+                      {(sodaForm.freeSizes || []).includes(sz.value) && <Check className="w-3 h-3 mx-auto mt-0.5" />}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-xs text-muted-foreground">Disponível</label>

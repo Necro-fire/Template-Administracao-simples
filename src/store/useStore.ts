@@ -34,7 +34,7 @@ const mapSodaProduct = (row: any): SodaProduct => ({
   price: Number(row.price) || 0,
   cost: Number(row.cost) || 0,
   active: row.active ?? true,
-  freeSizes: [], // will be computed from freeSodaRules
+  freeSizes: (row.free_sizes || []) as PizzaSize[],
 });
 
 interface AppState {
@@ -444,12 +444,14 @@ export const useStore = create<AppState>()((set, get) => ({
   addSodaProduct: async (p) => {
     const { error } = await supabase.from('soda_products').insert({
       id: p.id, name: p.name, icon: p.icon, price: p.price, cost: p.cost, active: p.active, size: p.size,
+      free_sizes: p.freeSizes || [],
     });
     if (!error) set(s => ({ sodaProducts: [...s.sodaProducts, p] }));
   },
   updateSodaProduct: async (p) => {
     await supabase.from('soda_products').update({
       name: p.name, icon: p.icon, price: p.price, cost: p.cost, active: p.active, size: p.size,
+      free_sizes: p.freeSizes || [],
     }).eq('id', p.id);
     set(s => ({ sodaProducts: s.sodaProducts.map(x => x.id === p.id ? p : x) }));
   },

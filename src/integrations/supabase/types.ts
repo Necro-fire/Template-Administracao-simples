@@ -361,6 +361,7 @@ export type Database = {
           active: boolean | null
           cost: number | null
           created_at: string | null
+          free_sizes: string[] | null
           icon: string | null
           id: string
           name: string
@@ -371,6 +372,7 @@ export type Database = {
           active?: boolean | null
           cost?: number | null
           created_at?: string | null
+          free_sizes?: string[] | null
           icon?: string | null
           id?: string
           name: string
@@ -381,6 +383,7 @@ export type Database = {
           active?: boolean | null
           cost?: number | null
           created_at?: string | null
+          free_sizes?: string[] | null
           icon?: string | null
           id?: string
           name?: string
