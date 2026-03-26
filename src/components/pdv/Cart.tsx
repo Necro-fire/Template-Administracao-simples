@@ -8,7 +8,7 @@ import { formatCurrency } from '@/lib/format';
 import { maskPhone, maskCEP } from '@/lib/masks';
 import { toast } from 'sonner';
 import { ReceiptDialog } from './ReceiptDialog';
-import { ProfessionalAlert } from '@/components/ui/professional-alert';
+import { ReceiptDialog } from './ReceiptDialog';
 
 export function Cart() {
   const { cart, removeFromCart, updateCartItem, clearCart, finalizeSale, cashRegister } = useStore();
