@@ -252,7 +252,7 @@ export function Cart() {
                     <Input
                       value={deliveryAddress.number}
                       onChange={(e) => setDeliveryAddress({ ...deliveryAddress, number: e.target.value.replace(/\D/g, '') })}
-                      placeholder="Nº *"
+                      placeholder="Nº (opcional)"
                       className="bg-card border-border h-7 text-xs w-20"
                     />
                     <Input
