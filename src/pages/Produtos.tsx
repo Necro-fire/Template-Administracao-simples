@@ -32,7 +32,7 @@ export default function Produtos() {
     borders, addBorder, updateBorder, deleteBorder,
     freeBorderRules, setFreeBorderRules,
     freeSodaRules, setFreeSodaRules,
-    sodaProducts,
+    sodaProducts, addSodaProduct, updateSodaProduct, deleteSodaProduct,
   } = useStore();
   const { pinUnlocked } = useAuthStore();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -47,6 +47,12 @@ export default function Produtos() {
   const [editingBorder, setEditingBorder] = useState<PizzaBorder | null>(null);
   const [borderForm, setBorderForm] = useState<Omit<PizzaBorder, 'id'>>(emptyBorder);
   const [deleteBorderConfirm, setDeleteBorderConfirm] = useState<string | null>(null);
+
+  // Soda dialog
+  const [sodaDialogOpen, setSodaDialogOpen] = useState(false);
+  const [editingSoda, setEditingSoda] = useState<Product | null>(null);
+  const [sodaForm, setSodaForm] = useState({ name: '', icon: '🥤', price: 0, cost: 0, active: true });
+  const [deleteSodaConfirm, setDeleteSodaConfirm] = useState<string | null>(null);
 
   const filtered = products.filter(p => filterCat === 'all' || p.category === filterCat);
   const isPizza = form.category === 'pizza';
