@@ -98,7 +98,7 @@ export function PizzaBuilder({ open, onClose, initialFlavorId }: PizzaBuilderPro
     if (freeSoda) {
       addToCart({
         id: crypto.randomUUID(),
-        product: { ...freeSoda, name: `${freeSoda.name} (Grátis)` },
+        product: { id: freeSoda.id, name: `${freeSoda.name} (Grátis)`, category: 'bebida' as const, icon: freeSoda.icon, price: 0, cost: freeSoda.cost, active: true },
         quantity: 1,
         observations: ['Refrigerante grátis - Pizza ' + size],
         calculatedPrice: 0,
