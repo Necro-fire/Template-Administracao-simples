@@ -187,8 +187,8 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
   };
 
   const tabs: { value: ReceiptType; label: string; icon: React.ReactNode }[] = [
-    { value: 'entregador', label: 'Entregador', icon: <Truck className="w-3.5 h-3.5" /> },
     { value: 'cliente', label: 'Cliente', icon: <User className="w-3.5 h-3.5" /> },
+    { value: 'entregador', label: 'Entregador', icon: <Truck className="w-3.5 h-3.5" /> },
     { value: 'completa', label: 'Completa', icon: <FileText className="w-3.5 h-3.5" /> },
   ];
 
