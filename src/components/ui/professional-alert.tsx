@@ -72,7 +72,7 @@ export function ProfessionalAlert({
         config.borderColor,
       )}>
         {/* Top accent bar */}
-        <div className={cn('h-1', config.bgIcon.replace('/10', ''))} style={{
+        <div className={cn('h-1')} style={{
           background: variant === 'success' ? 'hsl(var(--success))' :
             variant === 'error' ? 'hsl(var(--destructive))' :
             variant === 'warning' ? 'hsl(var(--warning))' :
@@ -91,9 +91,6 @@ export function ProfessionalAlert({
                 <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{description}</p>
               )}
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-secondary transition-colors shrink-0">
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
           </div>
 
           {/* Custom content */}
