@@ -62,6 +62,9 @@ export interface CartItem {
   pizzaSize?: PizzaSize;
   secondFlavor?: Product;
   calculatedPrice: number;
+  border?: PizzaBorder;
+  borderFree?: boolean;
+  freeSoda?: Product;
 }
 
 export interface Sale {
@@ -108,4 +111,26 @@ export interface AuditLog {
   details: string;
   user: string;
   date: string;
+}
+
+// Border types
+export type BorderCategory = 'tradicional' | 'premium';
+
+export interface PizzaBorder {
+  id: string;
+  name: string;
+  price: number;
+  category: BorderCategory;
+  active: boolean;
+  freeSizes: PizzaSize[]; // sizes where this border is free
+}
+
+export interface FreeBorderRule {
+  size: PizzaSize;
+  enabled: boolean;
+}
+
+export interface FreeSodaRule {
+  size: PizzaSize;
+  enabled: boolean;
 }
