@@ -463,6 +463,28 @@ export default function Produtos() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Soda Edit Dialog */}
+        <Dialog open={sodaDialogOpen} onOpenChange={setSodaDialogOpen}>
+          <DialogContent className="bg-card border-border max-w-sm">
+            <DialogHeader><DialogTitle>{editingSoda ? 'Editar' : 'Novo'} Refrigerante</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground">Nome *</label>
+                <Input value={sodaForm.name} onChange={e => setSodaForm({...sodaForm, name: e.target.value})} className="bg-secondary border-border" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Preço (R$)</label>
+                <Input type="number" step="0.01" value={sodaForm.price||''} onChange={e => setSodaForm({...sodaForm, price: parseFloat(e.target.value)||0})} className="bg-secondary border-border" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground flex items-center gap-1"><Lock className="w-3 h-3" /> Custo (R$)</label>
+                <Input type="number" step="0.01" value={sodaForm.cost||''} onChange={e => setSodaForm({...sodaForm, cost: parseFloat(e.target.value)||0})} className="bg-secondary border-border" />
+              </div>
+              <Button onClick={handleSaveSoda} className="w-full bg-primary hover:bg-primary/90 font-bold">{editingSoda ? 'Salvar' : 'Adicionar'}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Delete product confirm */}
@@ -489,6 +511,20 @@ export default function Produtos() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeleteBorder}>Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete soda confirm */}
+      <AlertDialog open={!!deleteSodaConfirm} onOpenChange={(open) => !open && setDeleteSodaConfirm(null)}>
+        <AlertDialogContent className="bg-card border-border max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover refrigerante?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteSoda}>Remover</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
