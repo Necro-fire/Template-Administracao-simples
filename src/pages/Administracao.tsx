@@ -45,21 +45,21 @@ export default function Administracao() {
     setDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name.trim()) { toast.error('Nome obrigatório'); return; }
     if (editing) {
-      updateBorder({ ...form, id: editing.id } as PizzaBorder);
+      await updateBorder({ ...form, id: editing.id } as PizzaBorder);
       toast.success('Borda atualizada');
     } else {
-      addBorder({ ...form, id: crypto.randomUUID() } as PizzaBorder);
+      await addBorder({ ...form, id: crypto.randomUUID() } as PizzaBorder);
       toast.success('Borda adicionada');
     }
     setDialogOpen(false);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteConfirm) {
-      deleteBorder(deleteConfirm);
+      await deleteBorder(deleteConfirm);
       toast.success('Borda removida');
       setDeleteConfirm(null);
     }
@@ -74,23 +74,23 @@ export default function Administracao() {
     });
   };
 
-  const toggleFreeBorderRule = (sz: PizzaSize) => {
+  const toggleFreeBorderRule = async (sz: PizzaSize) => {
     const newRules: FreeBorderRule[] = PIZZA_SIZES.map(s => {
       const existing = freeBorderRules.find(r => r.size === s.value);
       if (s.value === sz) return { size: sz, enabled: !(existing?.enabled ?? false) };
       return existing || { size: s.value, enabled: false };
     });
-    setFreeBorderRules(newRules);
+    await setFreeBorderRules(newRules);
     toast.success('Regra atualizada');
   };
 
-  const toggleFreeSodaRule = (sz: PizzaSize) => {
+  const toggleFreeSodaRule = async (sz: PizzaSize) => {
     const newRules: FreeSodaRule[] = PIZZA_SIZES.map(s => {
       const existing = freeSodaRules.find(r => r.size === s.value);
       if (s.value === sz) return { size: sz, enabled: !(existing?.enabled ?? false) };
       return existing || { size: s.value, enabled: false };
     });
-    setFreeSodaRules(newRules);
+    await setFreeSodaRules(newRules);
     toast.success('Regra atualizada');
   };
 
