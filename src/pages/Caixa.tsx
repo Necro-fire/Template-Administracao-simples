@@ -27,19 +27,19 @@ export default function Caixa() {
     [cashHistory, dateRange]
   );
 
-  const handleOpen = () => {
+  const handleOpen = async () => {
     const a = parseFloat(initialAmount);
     if (isNaN(a) || a < 0) { toast.error('Valor inválido'); return; }
-    openRegister(a); setInitialAmount(''); toast.success('Caixa aberto!');
+    await openRegister(a); setInitialAmount(''); toast.success('Caixa aberto!');
   };
-  const handleClose = () => {
+  const handleClose = async () => {
     if (!window.confirm('Fechar o caixa?')) return;
-    closeRegister(); toast.success('Caixa fechado!');
+    await closeRegister(); toast.success('Caixa fechado!');
   };
-  const handleMovement = () => {
+  const handleMovement = async () => {
     const a = parseFloat(movAmount);
     if (isNaN(a) || a <= 0) { toast.error('Valor inválido'); return; }
-    addMovement({ type: movType, amount: a, description: movDesc || movType, origin: 'manual' });
+    await addMovement({ type: movType, amount: a, description: movDesc || movType, origin: 'manual' });
     setMovAmount(''); setMovDesc(''); toast.success('Registrado');
   };
 
