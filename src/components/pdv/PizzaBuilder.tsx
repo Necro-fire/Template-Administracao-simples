@@ -169,7 +169,7 @@ export function PizzaBuilder({ open, onClose, initialFlavorId }: PizzaBuilderPro
         {/* Size */}
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-2 block">Tamanho</label>
-          <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-2">
             {PIZZA_SIZES.map((s) => (
               <button
                 key={s.value}
