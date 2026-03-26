@@ -8,10 +8,7 @@ import { formatCurrency } from '@/lib/format';
 import { maskPhone, maskCEP } from '@/lib/masks';
 import { toast } from 'sonner';
 import { ReceiptDialog } from './ReceiptDialog';
-import {
-  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
-} from '@/components/ui/alert-dialog';
+import { ProfessionalAlert } from '@/components/ui/professional-alert';
 
 export function Cart() {
   const { cart, removeFromCart, updateCartItem, clearCart, finalizeSale, cashRegister } = useStore();
@@ -82,7 +79,6 @@ export function Cart() {
       setCustomerName(''); setCustomerContact('');
       setDeliveryMode('retirada');
       setDeliveryAddress({ name: '', phone: '', cep: '', street: '', number: '', neighborhood: '', complement: '', reference: '' });
-      toast.success('Venda finalizada!');
       setShowReceiptConfirm(true);
     } catch (e) {
       toast.error('Erro ao finalizar venda');
@@ -357,18 +353,20 @@ export function Cart() {
         </div>
       </div>
 
-      <AlertDialog open={showReceiptConfirm} onOpenChange={setShowReceiptConfirm}>
-        <AlertDialogContent className="bg-card border-border max-w-sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Gerar nota?</AlertDialogTitle>
-            <AlertDialogDescription>Deseja gerar a nota desta venda?</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowReceiptConfirm(false)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { setShowReceipt(true); setShowReceiptConfirm(false); }}>Gerar Nota</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ProfessionalAlert
+        open={showReceiptConfirm}
+        onClose={() => setShowReceiptConfirm(false)}
+        variant="success"
+        title="Venda concluída com sucesso. Deseja imprimir a nota?"
+        confirmLabel="Sim"
+        cancelLabel="Não"
+        onConfirm={() => {
+          setShowReceipt(true);
+          setShowReceiptConfirm(false);
+        }}
+        onCancel={() => setShowReceiptConfirm(false)}
+        showCancel
+      />
 
       <ReceiptDialog sale={lastSale} open={showReceipt} onOpenChange={setShowReceipt} />
     </>
