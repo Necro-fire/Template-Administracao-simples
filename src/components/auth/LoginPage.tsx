@@ -132,9 +132,6 @@ export function LoginPage() {
           </form>
         )}
 
-        <p className="text-[10px] text-muted-foreground text-center mt-6">
-          Padrão: CNPJ 00.000.000/0001-00 · Senha admin123 · PIN 1234
-        </p>
       </div>
     </div>
   );

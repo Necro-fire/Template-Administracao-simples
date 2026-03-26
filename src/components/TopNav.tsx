@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { maskCNPJ } from '@/lib/format';
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
   AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
@@ -24,16 +25,33 @@ const links = [
 export function TopNav() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { pinUnlocked, lockPin, logout, companyName, password, pin, changePassword, changePin } = useAuthStore();
+  const { pinUnlocked, lockPin, logout, changePassword, changePin, setCnpj, cnpj } = useAuthStore();
+  const { companyName } = useAuthStore();
   const { cashRegister, cart } = useStore();
   const isRegisterOpen = cashRegister && !cashRegister.closedAt;
   const [showSettings, setShowSettings] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<'password' | 'pin'>('password');
-  const [settingsPin, setSettingsPin] = useState('');
-  const [settingsPassword, setSettingsPassword] = useState('');
-  const [newValue, setNewValue] = useState('');
+  const [settingsTab, setSettingsTab] = useState<'password' | 'pin' | 'cnpj'>('password');
+
+  // Password fields
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  // PIN fields
+  const [currentPin, setCurrentPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+
+  // CNPJ field
+  const [newCnpj, setNewCnpj] = useState('');
 
   const [navAlert, setNavAlert] = useState<{ to: string } | null>(null);
+
+  const resetFields = () => {
+    setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+    setCurrentPin(''); setNewPin(''); setConfirmPin('');
+    setNewCnpj('');
+  };
 
   const handleNavClick = (to: string, e: React.MouseEvent) => {
     if (pathname === '/' && to !== '/' && cart.length > 0) {
@@ -50,18 +68,52 @@ export function TopNav() {
   };
 
   const handleChangePassword = () => {
-    if (changePassword(settingsPin, newValue)) {
-      toast.success('Senha alterada!');
-      setShowSettings(false); setSettingsPin(''); setNewValue('');
-    } else { toast.error('PIN incorreto'); }
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error('Preencha todos os campos'); return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('As senhas não coincidem'); return;
+    }
+    if (changePassword(currentPassword, newPassword)) {
+      toast.success('Senha alterada com sucesso');
+      setShowSettings(false); resetFields();
+    } else {
+      toast.error('Senha atual incorreta');
+    }
   };
 
   const handleChangePin = () => {
-    if (newValue.length !== 4) { toast.error('O PIN deve ter exatamente 4 dígitos'); return; }
-    if (changePin(settingsPassword, newValue)) {
-      toast.success('PIN alterado!');
-      setShowSettings(false); setSettingsPassword(''); setNewValue('');
-    } else { toast.error('Senha incorreta'); }
+    if (!currentPin || !newPin || !confirmPin) {
+      toast.error('Preencha todos os campos'); return;
+    }
+    if (newPin.length !== 4 || confirmPin.length !== 4) {
+      toast.error('O PIN deve ter 4 dígitos'); return;
+    }
+    if (newPin !== confirmPin) {
+      toast.error('Os PINs não coincidem'); return;
+    }
+    if (changePin(currentPin, newPin)) {
+      toast.success('PIN alterado com sucesso');
+      setShowSettings(false); resetFields();
+    } else {
+      toast.error('PIN atual incorreto');
+    }
+  };
+
+  const handleChangeCnpj = () => {
+    const digits = newCnpj.replace(/\D/g, '');
+    if (digits.length !== 14) {
+      toast.error('CNPJ inválido'); return;
+    }
+    setCnpj(newCnpj);
+    toast.success('CNPJ alterado com sucesso');
+    setShowSettings(false); resetFields();
+  };
+
+  const openSettings = () => {
+    resetFields();
+    setSettingsTab('password');
+    setShowSettings(true);
   };
 
   return (
@@ -104,7 +156,7 @@ export function TopNav() {
               <Unlock className="w-3.5 h-3.5" />
             </button>
           )}
-          <button onClick={() => setShowSettings(true)} className="text-muted-foreground hover:text-foreground transition-colors p-1" title="Configurações">
+          <button onClick={openSettings} className="text-muted-foreground hover:text-foreground transition-colors p-1" title="Configurações">
             <Settings className="w-3.5 h-3.5" />
           </button>
           <button onClick={logout} className="text-muted-foreground hover:text-destructive transition-colors p-1" title="Sair">
@@ -132,25 +184,38 @@ export function TopNav() {
         <DialogContent className="bg-card border-border max-w-sm">
           <DialogHeader><DialogTitle>Configurações</DialogTitle></DialogHeader>
           <div className="flex gap-2 mb-4">
-            <Button size="sm" variant={settingsTab === 'password' ? 'default' : 'outline'} onClick={() => { setSettingsTab('password'); setNewValue(''); }} className="text-xs">Alterar Senha</Button>
-            <Button size="sm" variant={settingsTab === 'pin' ? 'default' : 'outline'} onClick={() => { setSettingsTab('pin'); setNewValue(''); }} className="text-xs">Alterar PIN</Button>
+            <Button size="sm" variant={settingsTab === 'password' ? 'default' : 'outline'} onClick={() => { setSettingsTab('password'); resetFields(); }} className="text-xs">Senha</Button>
+            <Button size="sm" variant={settingsTab === 'pin' ? 'default' : 'outline'} onClick={() => { setSettingsTab('pin'); resetFields(); }} className="text-xs">PIN</Button>
+            <Button size="sm" variant={settingsTab === 'cnpj' ? 'default' : 'outline'} onClick={() => { setSettingsTab('cnpj'); resetFields(); }} className="text-xs">CNPJ</Button>
           </div>
+
           {settingsTab === 'password' && (
             <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">Senha atual: <span className="font-mono text-foreground">{password}</span></p>
-              <p className="text-xs text-muted-foreground">Informe o PIN para alterar a senha</p>
-              <PasswordInput placeholder="PIN atual" value={settingsPin} onChange={(e) => setSettingsPin(e.target.value.replace(/\D/g, '').slice(0, 4))} className="bg-secondary border-border" />
-              <PasswordInput placeholder="Nova senha" value={newValue} onChange={(e) => setNewValue(e.target.value)} className="bg-secondary border-border" />
-              <Button onClick={handleChangePassword} className="w-full bg-primary hover:bg-primary/90">Alterar Senha</Button>
+              <PasswordInput placeholder="Senha atual" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="bg-secondary border-border" />
+              <PasswordInput placeholder="Nova senha" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="bg-secondary border-border" />
+              <PasswordInput placeholder="Confirmar nova senha" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="bg-secondary border-border" />
+              <Button onClick={handleChangePassword} className="w-full">Alterar Senha</Button>
             </div>
           )}
+
           {settingsTab === 'pin' && (
             <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">PIN atual: <span className="font-mono text-foreground">{pin}</span></p>
-              <p className="text-xs text-muted-foreground">Informe a senha para alterar o PIN</p>
-              <PasswordInput placeholder="Senha atual" value={settingsPassword} onChange={(e) => setSettingsPassword(e.target.value)} className="bg-secondary border-border" />
-              <Input placeholder="Novo PIN (4 dígitos)" value={newValue} onChange={(e) => setNewValue(e.target.value.replace(/\D/g, '').slice(0, 4))} className="bg-secondary border-border" />
-              <Button onClick={handleChangePin} className="w-full bg-primary hover:bg-primary/90">Alterar PIN</Button>
+              <PasswordInput placeholder="PIN atual" value={currentPin} onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, '').slice(0, 4))} className="bg-secondary border-border" />
+              <PasswordInput placeholder="Novo PIN" value={newPin} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))} className="bg-secondary border-border" />
+              <PasswordInput placeholder="Confirmar novo PIN" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))} className="bg-secondary border-border" />
+              <Button onClick={handleChangePin} className="w-full">Alterar PIN</Button>
+            </div>
+          )}
+
+          {settingsTab === 'cnpj' && (
+            <div className="space-y-3">
+              <Input
+                placeholder="CNPJ"
+                value={newCnpj}
+                onChange={(e) => setNewCnpj(maskCNPJ(e.target.value))}
+                className="bg-secondary border-border"
+              />
+              <Button onClick={handleChangeCnpj} className="w-full">Alterar CNPJ</Button>
             </div>
           )}
         </DialogContent>
