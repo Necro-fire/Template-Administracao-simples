@@ -139,6 +139,9 @@ export const useStore = create<AppState>()(
           customerContact,
           observations,
           cancelled: false,
+          deliveryMode,
+          deliveryAddress,
+          deliveryFee,
         };
         const reg = state.cashRegister;
         set({
