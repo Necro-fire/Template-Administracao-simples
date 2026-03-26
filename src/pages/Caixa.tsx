@@ -37,8 +37,8 @@ export default function Caixa() {
   );
 
   const handleOpen = async () => {
-    const a = parseFloat(initialAmount);
-    if (isNaN(a) || a < 0) { setErrorAlert('Informe um valor inicial válido para abrir o caixa.'); return; }
+    const a = parseCurrency(initialAmount);
+    if (a < 0) { setErrorAlert('Informe um valor inicial válido para abrir o caixa.'); return; }
     await openRegister(a);
     setInitialAmount('');
     setSuccessAlert('Caixa aberto com sucesso!');
