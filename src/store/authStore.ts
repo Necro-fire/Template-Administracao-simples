@@ -29,8 +29,20 @@ interface AuthState {
 
 async function saveToDb(key: string, value: string) {
   try {
-    await supabase.from('app_settings').upsert({ key, value: JSON.stringify(value) }, { onConflict: 'key' });
+    await supabase.from('app_settings').upsert({ key, value }, { onConflict: 'key' });
   } catch (_) { /* silent */ }
+}
+
+function parseDbValue(raw: unknown): string {
+  if (typeof raw === 'string') {
+    // Handle double-encoded JSON strings like "\"value\""
+    try {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed === 'string') return parsed;
+    } catch (_) { /* not JSON, use as-is */ }
+    return raw;
+  }
+  return String(raw);
 }
 
 export const useAuthStore = create<AuthState>()(
