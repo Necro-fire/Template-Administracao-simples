@@ -21,6 +21,7 @@ const mapBorder = (row: any): PizzaBorder => ({
   id: row.id,
   name: row.name,
   price: Number(row.price) || 0,
+  cost: Number(row.cost) || 0,
   category: (row.category || 'tradicional') as BorderCategory,
   active: row.active ?? true,
   freeSizes: (row.free_sizes || []) as PizzaSize[],
