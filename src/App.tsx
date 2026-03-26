@@ -18,6 +18,24 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function AuthenticatedApp() {
+  const fetchAll = useStore(s => s.fetchAll);
+  const loading = useStore(s => s.loading);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">Carregando dados...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <BrowserRouter>
       <div className="flex flex-col h-screen">
