@@ -14,7 +14,375 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_settings: {
+        Row: {
+          key: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: string | null
+          id: string
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      borders: {
+        Row: {
+          active: boolean | null
+          category: string | null
+          created_at: string | null
+          free_sizes: string[] | null
+          id: string
+          name: string
+          price: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          free_sizes?: string[] | null
+          id?: string
+          name: string
+          price?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          free_sizes?: string[] | null
+          id?: string
+          name?: string
+          price?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      cash_movements: {
+        Row: {
+          amount: number
+          created_at: string | null
+          description: string | null
+          id: string
+          origin: string | null
+          payment_method: string | null
+          register_id: string
+          type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          origin?: string | null
+          payment_method?: string | null
+          register_id: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          origin?: string | null
+          payment_method?: string | null
+          register_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_movements_register_id_fkey"
+            columns: ["register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_registers: {
+        Row: {
+          closed_at: string | null
+          created_at: string | null
+          id: string
+          informed_amount: number | null
+          initial_amount: number | null
+          opened_at: string | null
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string | null
+          id?: string
+          informed_amount?: number | null
+          initial_amount?: number | null
+          opened_at?: string | null
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string | null
+          id?: string
+          informed_amount?: number | null
+          initial_amount?: number | null
+          opened_at?: string | null
+        }
+        Relationships: []
+      }
+      free_border_rules: {
+        Row: {
+          enabled: boolean | null
+          id: string
+          size: string
+        }
+        Insert: {
+          enabled?: boolean | null
+          id?: string
+          size: string
+        }
+        Update: {
+          enabled?: boolean | null
+          id?: string
+          size?: string
+        }
+        Relationships: []
+      }
+      free_soda_rules: {
+        Row: {
+          enabled: boolean | null
+          id: string
+          size: string
+        }
+        Insert: {
+          enabled?: boolean | null
+          id?: string
+          size: string
+        }
+        Update: {
+          enabled?: boolean | null
+          id?: string
+          size?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          active: boolean | null
+          category: string
+          cost: number | null
+          created_at: string | null
+          icon: string | null
+          id: string
+          name: string
+          observations: string[] | null
+          pizza_costs: Json | null
+          pizza_prices: Json | null
+          pizza_type: string | null
+          price: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          category: string
+          cost?: number | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          observations?: string[] | null
+          pizza_costs?: Json | null
+          pizza_prices?: Json | null
+          pizza_type?: string | null
+          price?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          category?: string
+          cost?: number | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          observations?: string[] | null
+          pizza_costs?: Json | null
+          pizza_prices?: Json | null
+          pizza_type?: string | null
+          price?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sale_items: {
+        Row: {
+          border_data: Json | null
+          border_free: boolean | null
+          calculated_price: number
+          created_at: string | null
+          free_soda: Json | null
+          id: string
+          observations: string[] | null
+          pizza_size: string | null
+          product_data: Json
+          quantity: number | null
+          sale_id: string
+          second_flavor: Json | null
+        }
+        Insert: {
+          border_data?: Json | null
+          border_free?: boolean | null
+          calculated_price: number
+          created_at?: string | null
+          free_soda?: Json | null
+          id?: string
+          observations?: string[] | null
+          pizza_size?: string | null
+          product_data: Json
+          quantity?: number | null
+          sale_id: string
+          second_flavor?: Json | null
+        }
+        Update: {
+          border_data?: Json | null
+          border_free?: boolean | null
+          calculated_price?: number
+          created_at?: string | null
+          free_soda?: Json | null
+          id?: string
+          observations?: string[] | null
+          pizza_size?: string | null
+          product_data?: Json
+          quantity?: number | null
+          sale_id?: string
+          second_flavor?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales: {
+        Row: {
+          cancelled: boolean | null
+          cancelled_at: string | null
+          change_amount: number | null
+          code: string
+          created_at: string | null
+          customer_contact: string | null
+          customer_name: string | null
+          delivery_address: Json | null
+          delivery_fee: number | null
+          delivery_mode: string | null
+          id: string
+          observations: string[] | null
+          payments: Json
+          register_id: string | null
+          total: number
+        }
+        Insert: {
+          cancelled?: boolean | null
+          cancelled_at?: string | null
+          change_amount?: number | null
+          code: string
+          created_at?: string | null
+          customer_contact?: string | null
+          customer_name?: string | null
+          delivery_address?: Json | null
+          delivery_fee?: number | null
+          delivery_mode?: string | null
+          id?: string
+          observations?: string[] | null
+          payments: Json
+          register_id?: string | null
+          total: number
+        }
+        Update: {
+          cancelled?: boolean | null
+          cancelled_at?: string | null
+          change_amount?: number | null
+          code?: string
+          created_at?: string | null
+          customer_contact?: string | null
+          customer_name?: string | null
+          delivery_address?: Json | null
+          delivery_fee?: number | null
+          delivery_mode?: string | null
+          id?: string
+          observations?: string[] | null
+          payments?: Json
+          register_id?: string | null
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_register_id_fkey"
+            columns: ["register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      soda_products: {
+        Row: {
+          active: boolean | null
+          cost: number | null
+          created_at: string | null
+          icon: string | null
+          id: string
+          name: string
+          price: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          cost?: number | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          price?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          cost?: number | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          price?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
