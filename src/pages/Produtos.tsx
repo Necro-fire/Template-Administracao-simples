@@ -410,6 +410,22 @@ export default function Produtos() {
                 <label className="text-xs text-muted-foreground flex items-center gap-1"><Lock className="w-3 h-3" /> Custo (R$)</label>
                 <Input type="number" step="0.01" value={sodaForm.cost||''} onChange={e => setSodaForm({...sodaForm, cost: parseFloat(e.target.value)||0})} className="bg-secondary border-border" />
               </div>
+              <div>
+                <label className="text-xs text-muted-foreground flex items-center gap-1"><Gift className="w-3 h-3" /> Grátis por tamanho de pizza</label>
+                <div className="grid grid-cols-4 gap-2 mt-1">
+                  {PIZZA_SIZES.map(sz => (
+                    <button key={sz.value} onClick={() => toggleSodaFreeSize(sz.value)}
+                      className={`p-2 rounded-lg border text-center text-xs font-medium transition-all ${
+                        (sodaForm.freeSizes || []).includes(sz.value)
+                          ? 'bg-success/10 border-success/30 text-success'
+                          : 'bg-secondary border-border text-muted-foreground'
+                      }`}>
+                      {sz.value}
+                      {(sodaForm.freeSizes || []).includes(sz.value) && <Check className="w-3 h-3 mx-auto mt-0.5" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="flex items-center gap-2">
                 <label className="text-xs text-muted-foreground">Disponível</label>
                 <button onClick={() => setSodaForm({...sodaForm, active: !sodaForm.active})}
