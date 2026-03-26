@@ -9,11 +9,13 @@ import { toast } from 'sonner';
 type View = 'login' | 'forgot-password' | 'forgot-pin';
 
 export function LoginPage() {
-  const { login, recoverPasswordWithPin, recoverPinWithCredentials } = useAuthStore();
+  const { login, recoverPasswordWithPin, recoverPinWithCredentials, loadFromDb } = useAuthStore();
   const [view, setView] = useState<View>('login');
   const [cnpj, setCnpj] = useState('');
   const [password, setPassword] = useState('');
   const [pin, setPin] = useState('');
+
+  useEffect(() => { loadFromDb(); }, [loadFromDb]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
