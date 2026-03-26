@@ -55,7 +55,7 @@ export default function Produtos() {
   // Soda dialog
   const [sodaDialogOpen, setSodaDialogOpen] = useState(false);
   const [editingSoda, setEditingSoda] = useState<SodaProduct | null>(null);
-  const [sodaForm, setSodaForm] = useState<Omit<SodaProduct, 'id' | 'freeSizes'>>(emptySoda);
+  const [sodaForm, setSodaForm] = useState<Omit<SodaProduct, 'id'>>(emptySoda);
   const [deleteSodaConfirm, setDeleteSodaConfirm] = useState<string | null>(null);
 
   const filtered = products.filter(p => filterCat === 'all' || p.category === filterCat);
