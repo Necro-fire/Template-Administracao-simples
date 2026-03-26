@@ -204,6 +204,45 @@ export default function Dashboard() {
     return Object.values(map).sort((a, b) => b.qty - a.qty).slice(0, 3);
   }, [filtered]);
 
+  // Top hamburgers
+  const topHamburgers = useMemo(() => {
+    const map: Record<string, { name: string; qty: number }> = {};
+    filtered.forEach(s => s.items.forEach(i => {
+      if (i.product.category === 'hamburguer') {
+        const key = i.product.id;
+        if (!map[key]) map[key] = { name: i.product.name, qty: 0 };
+        map[key].qty += i.quantity;
+      }
+    }));
+    return Object.values(map).sort((a, b) => b.qty - a.qty).slice(0, 3);
+  }, [filtered]);
+
+  // Top beverages
+  const topBebidas = useMemo(() => {
+    const map: Record<string, { name: string; qty: number }> = {};
+    filtered.forEach(s => s.items.forEach(i => {
+      if (i.product.category === 'bebida') {
+        const key = i.product.id;
+        if (!map[key]) map[key] = { name: i.product.name, qty: 0 };
+        map[key].qty += i.quantity;
+      }
+    }));
+    return Object.values(map).sort((a, b) => b.qty - a.qty).slice(0, 3);
+  }, [filtered]);
+
+  // Top portions
+  const topPorcoes = useMemo(() => {
+    const map: Record<string, { name: string; qty: number }> = {};
+    filtered.forEach(s => s.items.forEach(i => {
+      if (i.product.category === 'porcao') {
+        const key = i.product.id;
+        if (!map[key]) map[key] = { name: i.product.name, qty: 0 };
+        map[key].qty += i.quantity;
+      }
+    }));
+    return Object.values(map).sort((a, b) => b.qty - a.qty).slice(0, 3);
+  }, [filtered]);
+
   const PAYMENT_LABELS: Record<string, string> = {
     dinheiro: 'Dinheiro', pix: 'Pix',
     debito: 'Débito', credito: 'Crédito',
