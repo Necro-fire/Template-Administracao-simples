@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ICONS = ['🍕','🍔','🥤','🧃','💧','🍟','🧅','🧀','🫙','🍰','🍫','🍌','☕','🥛','🍺','🥩','🌭','🥗','➕','📦'];
 
-const DEFAULT_PIZZA_PRICES = { P: 0, M: 0, G: 0, GG: 0, 'Família': 0 } as Record<PizzaSize, number>;
+const DEFAULT_PIZZA_PRICES = { P: 0, M: 0, G: 0, GG: 0 } as Record<PizzaSize, number>;
 
 const emptyProduct: Omit<Product, 'id'> = {
   name: '', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, observations: [],
