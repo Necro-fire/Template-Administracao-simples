@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { PinGuard } from '@/components/PinGuard';
 import { useStore } from '@/store/useStore';
 import { useAuthStore } from '@/store/authStore';
-import { Product, Category, CATEGORIES, PIZZA_TYPES, PizzaSize, PIZZA_SIZES, PizzaBorder, BorderCategory } from '@/types/pizzaria';
+import { Product, Category, CATEGORIES, PIZZA_TYPES, PizzaSize, PIZZA_SIZES, PizzaBorder, SodaProduct } from '@/types/pizzaria';
 import { formatCurrency } from '@/lib/format';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,21 +17,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ICONS = ['🍕','🍔','🥤','🧃','💧','🍟','🧅','🧀','🫙','🍰','🍫','🍌','☕','🥛','🍺','🥩','🌭','🥗','➕','📦'];
 
+const DEFAULT_PIZZA_PRICES = { P: 0, M: 0, G: 0, GG: 0, 'Família': 0 } as Record<PizzaSize, number>;
+
 const emptyProduct: Omit<Product, 'id'> = {
   name: '', category: 'pizza', icon: '🍕', price: 0, cost: 0, active: true, observations: [],
-  pizzaType: 'tradicional', pizzaPrices: { P: 0, M: 0, G: 0, GG: 0 }, pizzaCosts: { P: 0, M: 0, G: 0, GG: 0 },
+  pizzaType: 'tradicional', pizzaPrices: { ...DEFAULT_PIZZA_PRICES }, pizzaCosts: { ...DEFAULT_PIZZA_PRICES },
 };
 
 const emptyBorder: Omit<PizzaBorder, 'id'> = {
-  name: '', price: 0, cost: 0, category: 'tradicional', active: true, freeSizes: [],
+  name: '', price: 0, cost: 0, active: true, freeSizes: [],
+};
+
+const emptySoda: Omit<SodaProduct, 'id' | 'freeSizes'> = {
+  name: '', icon: '🥤', price: 0, cost: 0, active: true, size: '1L',
 };
 
 export default function Produtos() {
   const {
     products, addProduct, updateProduct, deleteProduct,
     borders, addBorder, updateBorder, deleteBorder,
-    freeBorderRules, setFreeBorderRules,
-    freeSodaRules, setFreeSodaRules,
     sodaProducts, addSodaProduct, updateSodaProduct, deleteSodaProduct,
   } = useStore();
   const { pinUnlocked } = useAuthStore();
@@ -50,8 +54,8 @@ export default function Produtos() {
 
   // Soda dialog
   const [sodaDialogOpen, setSodaDialogOpen] = useState(false);
-  const [editingSoda, setEditingSoda] = useState<Product | null>(null);
-  const [sodaForm, setSodaForm] = useState({ name: '', icon: '🥤', price: 0, cost: 0, active: true });
+  const [editingSoda, setEditingSoda] = useState<SodaProduct | null>(null);
+  const [sodaForm, setSodaForm] = useState<Omit<SodaProduct, 'id' | 'freeSizes'>>(emptySoda);
   const [deleteSodaConfirm, setDeleteSodaConfirm] = useState<string | null>(null);
 
   const filtered = products.filter(p => filterCat === 'all' || p.category === filterCat);
@@ -72,8 +76,8 @@ export default function Produtos() {
   const addObs = () => { if (!obsInput.trim()) return; setForm({ ...form, observations: [...(form.observations || []), obsInput.trim()] }); setObsInput(''); };
 
   // Border handlers
-  const openNewBorder = () => { setBorderForm(emptyBorder); setEditingBorder(null); setBorderDialogOpen(true); };
-  const openEditBorder = (b: PizzaBorder) => { setBorderForm({ ...b }); setEditingBorder(b); setBorderDialogOpen(true); };
+  const openNewBorder = () => { setBorderForm({ ...emptyBorder }); setEditingBorder(null); setBorderDialogOpen(true); };
+  const openEditBorder = (b: PizzaBorder) => { setBorderForm({ name: b.name, price: b.price, cost: b.cost, active: b.active, freeSizes: [...b.freeSizes] }); setEditingBorder(b); setBorderDialogOpen(true); };
   const handleSaveBorder = async () => {
     if (!borderForm.name.trim()) { toast.error('Nome obrigatório'); return; }
     if (editingBorder) { await updateBorder({ ...borderForm, id: editingBorder.id } as PizzaBorder); toast.success('Borda atualizada'); }
@@ -87,30 +91,12 @@ export default function Produtos() {
     setBorderForm({ ...borderForm, freeSizes: current.includes(sz) ? current.filter(s => s !== sz) : [...current, sz] });
   };
 
-  const toggleFreeBorderRule = (sz: PizzaSize) => {
-    const existing = freeBorderRules.find(r => r.size === sz);
-    if (existing) {
-      setFreeBorderRules(freeBorderRules.map(r => r.size === sz ? { ...r, enabled: !r.enabled } : r));
-    } else {
-      setFreeBorderRules([...freeBorderRules, { size: sz, enabled: true }]);
-    }
-  };
-
-  const toggleFreeSodaRule = (sz: PizzaSize) => {
-    const existing = freeSodaRules.find(r => r.size === sz);
-    if (existing) {
-      setFreeSodaRules(freeSodaRules.map(r => r.size === sz ? { ...r, enabled: !r.enabled } : r));
-    } else {
-      setFreeSodaRules([...freeSodaRules, { size: sz, enabled: true }]);
-    }
-  };
-
   // Soda handlers
-  const openNewSoda = () => { setSodaForm({ name: '', icon: '🥤', price: 0, cost: 0, active: true }); setEditingSoda(null); setSodaDialogOpen(true); };
-  const openEditSoda = (s: Product) => { setSodaForm({ name: s.name, icon: s.icon, price: s.price, cost: s.cost, active: s.active }); setEditingSoda(s); setSodaDialogOpen(true); };
+  const openNewSoda = () => { setSodaForm({ ...emptySoda }); setEditingSoda(null); setSodaDialogOpen(true); };
+  const openEditSoda = (s: SodaProduct) => { setSodaForm({ name: s.name, icon: s.icon, price: s.price, cost: s.cost, active: s.active, size: s.size }); setEditingSoda(s); setSodaDialogOpen(true); };
   const handleSaveSoda = async () => {
     if (!sodaForm.name.trim()) { toast.error('Nome obrigatório'); return; }
-    const p: Product = { id: editingSoda?.id || crypto.randomUUID(), name: sodaForm.name, category: 'bebida' as Category, icon: sodaForm.icon, price: sodaForm.price, cost: sodaForm.cost, active: sodaForm.active };
+    const p: SodaProduct = { id: editingSoda?.id || crypto.randomUUID(), ...sodaForm, freeSizes: [] };
     if (editingSoda) { await updateSodaProduct(p); toast.success('Refrigerante atualizado'); }
     else { await addSodaProduct(p); toast.success('Refrigerante adicionado'); }
     setSodaDialogOpen(false);
@@ -123,7 +109,7 @@ export default function Produtos() {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Produtos</h1>
-            <p className="text-sm text-muted-foreground">Gerencie produtos, bordas e regras de grátis</p>
+            <p className="text-sm text-muted-foreground">Gerencie produtos, bordas e refrigerantes</p>
           </div>
         </div>
 
@@ -132,7 +118,6 @@ export default function Produtos() {
             <TabsTrigger value="produtos">📦 Produtos</TabsTrigger>
             <TabsTrigger value="bordas">🧀 Bordas</TabsTrigger>
             <TabsTrigger value="refrigerantes">🥤 Refrigerantes</TabsTrigger>
-            <TabsTrigger value="regras">🎁 Regras de Grátis</TabsTrigger>
           </TabsList>
 
           {/* ===== PRODUTOS TAB ===== */}
@@ -159,10 +144,10 @@ export default function Produtos() {
                     <p className="font-semibold text-sm truncate">{p.name}</p>
                     <p className="text-xs text-muted-foreground capitalize">{p.category}{p.pizzaType ? ` · ${p.pizzaType}` : ''}</p>
                     {p.category === 'pizza' && p.pizzaPrices ? (
-                      <div className="flex gap-2 mt-1">
-                        {(['P', 'M', 'G', 'GG'] as PizzaSize[]).map(s => (
-                          <span key={s} className="text-[10px] text-muted-foreground">
-                            <span className="font-bold text-foreground">{s}</span> {formatCurrency(p.pizzaPrices![s])}
+                      <div className="flex gap-2 mt-1 flex-wrap">
+                        {PIZZA_SIZES.map(s => (
+                          <span key={s.value} className="text-[10px] text-muted-foreground">
+                            <span className="font-bold text-foreground">{s.value}</span> {formatCurrency(p.pizzaPrices![s.value] || 0)}
                           </span>
                         ))}
                       </div>
@@ -171,7 +156,7 @@ export default function Produtos() {
                     )}
                     <p className="text-[10px] text-destructive flex items-center gap-1 mt-0.5">
                       <Lock className="w-2.5 h-2.5" />
-                      Custo: {p.category === 'pizza' && p.pizzaCosts ? formatCurrency(p.pizzaCosts.G) : formatCurrency(p.cost)}
+                      Custo: {p.category === 'pizza' && p.pizzaCosts ? formatCurrency(p.pizzaCosts.G || 0) : formatCurrency(p.cost)}
                     </p>
                   </div>
                   <div className="flex gap-1">
@@ -203,15 +188,17 @@ export default function Produtos() {
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <p className="font-semibold text-sm">{b.name}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{b.category}</p>
+                      <p className="text-[10px] text-destructive flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" /> Custo: {formatCurrency(b.cost)}
+                      </p>
                     </div>
                     <span className="text-primary font-bold text-sm">{formatCurrency(b.price)}</span>
                   </div>
                   {b.freeSizes.length > 0 && (
-                    <div className="flex gap-1 mb-2">
+                    <div className="flex gap-1 mb-2 flex-wrap">
                       {b.freeSizes.map(sz => (
                         <span key={sz} className="text-[10px] bg-success/10 text-success px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
-                          <Gift className="w-2.5 h-2.5" /> {sz}
+                          <Gift className="w-2.5 h-2.5" /> Grátis {sz}
                         </span>
                       ))}
                     </div>
@@ -245,6 +232,7 @@ export default function Produtos() {
                   <span className="text-3xl">{s.icon}</span>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm truncate">{s.name}</p>
+                    <p className="text-xs text-muted-foreground">{s.size}</p>
                     <p className="text-sm text-primary font-bold">{formatCurrency(s.price)}</p>
                     <p className="text-[10px] text-destructive flex items-center gap-1">
                       <Lock className="w-2.5 h-2.5" /> Custo: {formatCurrency(s.cost)}
@@ -263,69 +251,6 @@ export default function Produtos() {
               {sodaProducts.length === 0 && <p className="col-span-full text-muted-foreground text-center py-12">Nenhum refrigerante cadastrado</p>}
             </div>
           </TabsContent>
-
-          {/* ===== REGRAS DE GRÁTIS TAB ===== */}
-          <TabsContent value="regras" className="space-y-6 mt-4">
-            {/* Free Border Rules */}
-            <div className="glass-card p-5">
-              <h3 className="font-bold text-sm mb-1 flex items-center gap-2">🧀 Borda Grátis por Tamanho</h3>
-              <p className="text-xs text-muted-foreground mb-4">Defina quais tamanhos de pizza dão borda grátis automaticamente</p>
-              <div className="grid grid-cols-4 gap-3">
-                {PIZZA_SIZES.map(sz => {
-                  const rule = freeBorderRules.find(r => r.size === sz.value);
-                  const enabled = rule?.enabled ?? false;
-                  return (
-                    <button
-                      key={sz.value}
-                      onClick={() => toggleFreeBorderRule(sz.value)}
-                      className={`p-3 rounded-lg border text-center transition-all ${
-                        enabled ? 'bg-success/10 border-success/30 text-success' : 'bg-secondary border-border text-muted-foreground'
-                      }`}
-                    >
-                      <span className="block text-lg font-bold">{sz.value}</span>
-                      <span className="block text-[10px]">{sz.label}</span>
-                      {enabled && <Check className="w-4 h-4 mx-auto mt-1" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Free Soda Rules */}
-            <div className="glass-card p-5">
-              <h3 className="font-bold text-sm mb-1 flex items-center gap-2">🥤 Refrigerante Grátis por Tamanho</h3>
-              <p className="text-xs text-muted-foreground mb-4">Defina quais tamanhos de pizza dão refrigerante 1L grátis</p>
-              <div className="grid grid-cols-4 gap-3">
-                {PIZZA_SIZES.map(sz => {
-                  const rule = freeSodaRules.find(r => r.size === sz.value);
-                  const enabled = rule?.enabled ?? false;
-                  return (
-                    <button
-                      key={sz.value}
-                      onClick={() => toggleFreeSodaRule(sz.value)}
-                      className={`p-3 rounded-lg border text-center transition-all ${
-                        enabled ? 'bg-info/10 border-info/30 text-info' : 'bg-secondary border-border text-muted-foreground'
-                      }`}
-                    >
-                      <span className="block text-lg font-bold">{sz.value}</span>
-                      <span className="block text-[10px]">{sz.label}</span>
-                      {enabled && <Check className="w-4 h-4 mx-auto mt-1" />}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Available sodas */}
-              <div className="mt-4 pt-4 border-t border-border">
-                <p className="text-xs text-muted-foreground mb-2">Refrigerantes disponíveis para escolha:</p>
-                <div className="flex flex-wrap gap-2">
-                  {sodaProducts.filter(s => s.active).map(soda => (
-                    <span key={soda.id} className="text-xs bg-secondary px-2.5 py-1 rounded-lg">{soda.icon} {soda.name}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </TabsContent>
         </Tabs>
 
         {/* Product Edit Dialog */}
@@ -341,7 +266,7 @@ export default function Produtos() {
                 <label className="text-xs text-muted-foreground">Categoria *</label>
                 <div className="grid grid-cols-3 gap-1 mt-1">
                   {CATEGORIES.map(c => (
-                    <button key={c.value} onClick={() => setForm({...form, category: c.value, ...(c.value === 'pizza' ? {pizzaType:'tradicional',pizzaPrices:{P:0,M:0,G:0,GG:0},pizzaCosts:{P:0,M:0,G:0,GG:0}} : {pizzaType:undefined,pizzaPrices:undefined,pizzaCosts:undefined})})}
+                    <button key={c.value} onClick={() => setForm({...form, category: c.value, ...(c.value === 'pizza' ? {pizzaType:'tradicional',pizzaPrices:{...DEFAULT_PIZZA_PRICES},pizzaCosts:{...DEFAULT_PIZZA_PRICES}} : {pizzaType:undefined,pizzaPrices:undefined,pizzaCosts:undefined})})}
                       className={`px-2 py-1.5 rounded text-xs font-medium ${form.category === c.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>
                       {c.icon} {c.label}
                     </button>
@@ -367,20 +292,20 @@ export default function Produtos() {
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground">Preços *</label>
-                  <div className="grid grid-cols-4 gap-2 mt-1">
-                    {(['P','M','G','GG'] as PizzaSize[]).map(s => (
-                      <div key={s}><span className="text-[10px] text-muted-foreground">{s}</span>
-                        <Input type="number" step="0.01" value={form.pizzaPrices?.[s]||''} onChange={e => setForm({...form,pizzaPrices:{...form.pizzaPrices!,[s]:parseFloat(e.target.value)||0}})} className="bg-secondary border-border h-8 text-xs" />
+                  <div className="grid grid-cols-5 gap-2 mt-1">
+                    {PIZZA_SIZES.map(s => (
+                      <div key={s.value}><span className="text-[10px] text-muted-foreground">{s.value}</span>
+                        <Input type="number" step="0.01" value={form.pizzaPrices?.[s.value]||''} onChange={e => setForm({...form,pizzaPrices:{...form.pizzaPrices!,[s.value]:parseFloat(e.target.value)||0}})} className="bg-secondary border-border h-8 text-xs" />
                       </div>
                     ))}
                   </div>
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground flex items-center gap-1"><Lock className="w-3 h-3"/>Custos</label>
-                  <div className="grid grid-cols-4 gap-2 mt-1">
-                    {(['P','M','G','GG'] as PizzaSize[]).map(s => (
-                      <div key={s}><span className="text-[10px] text-muted-foreground">{s}</span>
-                        <Input type="number" step="0.01" value={form.pizzaCosts?.[s]||''} onChange={e => setForm({...form,pizzaCosts:{...form.pizzaCosts!,[s]:parseFloat(e.target.value)||0}})} className="bg-secondary border-border h-8 text-xs" />
+                  <div className="grid grid-cols-5 gap-2 mt-1">
+                    {PIZZA_SIZES.map(s => (
+                      <div key={s.value}><span className="text-[10px] text-muted-foreground">{s.value}</span>
+                        <Input type="number" step="0.01" value={form.pizzaCosts?.[s.value]||''} onChange={e => setForm({...form,pizzaCosts:{...form.pizzaCosts!,[s.value]:parseFloat(e.target.value)||0}})} className="bg-secondary border-border h-8 text-xs" />
                       </div>
                     ))}
                   </div>
@@ -426,19 +351,8 @@ export default function Produtos() {
                 <Input type="number" step="0.01" value={borderForm.cost||''} onChange={e => setBorderForm({...borderForm, cost: parseFloat(e.target.value)||0})} className="bg-secondary border-border" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">Categoria</label>
-                <div className="flex gap-2 mt-1">
-                  {(['tradicional', 'premium'] as BorderCategory[]).map(cat => (
-                    <button key={cat} onClick={() => setBorderForm({...borderForm, category: cat})}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize ${borderForm.category === cat ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Borda grátis nestes tamanhos</label>
-                <div className="grid grid-cols-4 gap-2 mt-1">
+                <label className="text-xs text-muted-foreground">Borda grátis por tamanho</label>
+                <div className="grid grid-cols-5 gap-2 mt-1">
                   {PIZZA_SIZES.map(sz => (
                     <button key={sz.value} onClick={() => toggleBorderFreeSize(sz.value)}
                       className={`p-2 rounded-lg border text-center text-xs font-medium transition-all ${
@@ -453,7 +367,7 @@ export default function Produtos() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-xs text-muted-foreground">Ativa</label>
+                <label className="text-xs text-muted-foreground">Disponível</label>
                 <button onClick={() => setBorderForm({...borderForm, active: !borderForm.active})}
                   className={`px-3 py-1 rounded text-xs font-medium ${borderForm.active ? 'bg-success/10 text-success' : 'bg-secondary text-muted-foreground'}`}>
                   {borderForm.active ? 'Sim' : 'Não'}
@@ -474,12 +388,30 @@ export default function Produtos() {
                 <Input value={sodaForm.name} onChange={e => setSodaForm({...sodaForm, name: e.target.value})} className="bg-secondary border-border" />
               </div>
               <div>
+                <label className="text-xs text-muted-foreground">Tamanho</label>
+                <div className="flex gap-2 mt-1">
+                  {['1L', '2L', '600ml', '350ml'].map(sz => (
+                    <button key={sz} onClick={() => setSodaForm({...sodaForm, size: sz})}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium ${sodaForm.size === sz ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>
+                      {sz}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
                 <label className="text-xs text-muted-foreground">Preço (R$)</label>
                 <Input type="number" step="0.01" value={sodaForm.price||''} onChange={e => setSodaForm({...sodaForm, price: parseFloat(e.target.value)||0})} className="bg-secondary border-border" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground flex items-center gap-1"><Lock className="w-3 h-3" /> Custo (R$)</label>
                 <Input type="number" step="0.01" value={sodaForm.cost||''} onChange={e => setSodaForm({...sodaForm, cost: parseFloat(e.target.value)||0})} className="bg-secondary border-border" />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground">Disponível</label>
+                <button onClick={() => setSodaForm({...sodaForm, active: !sodaForm.active})}
+                  className={`px-3 py-1 rounded text-xs font-medium ${sodaForm.active ? 'bg-success/10 text-success' : 'bg-secondary text-muted-foreground'}`}>
+                  {sodaForm.active ? 'Sim' : 'Não'}
+                </button>
               </div>
               <Button onClick={handleSaveSoda} className="w-full bg-primary hover:bg-primary/90 font-bold">{editingSoda ? 'Salvar' : 'Adicionar'}</Button>
             </div>

@@ -98,7 +98,7 @@ export function PizzaBuilder({ open, onClose, initialFlavorId }: PizzaBuilderPro
     if (freeSoda) {
       addToCart({
         id: crypto.randomUUID(),
-        product: { ...freeSoda, name: `${freeSoda.name} (Grátis)` },
+        product: { id: freeSoda.id, name: `${freeSoda.name} (Grátis)`, category: 'bebida' as const, icon: freeSoda.icon, price: 0, cost: freeSoda.cost, active: true },
         quantity: 1,
         observations: ['Refrigerante grátis - Pizza ' + size],
         calculatedPrice: 0,
@@ -269,7 +269,7 @@ export function PizzaBuilder({ open, onClose, initialFlavorId }: PizzaBuilderPro
                     <div className="flex items-center justify-between gap-2">
                       <div>
                         <span className="text-sm font-semibold">{border.name}</span>
-                        <span className="text-[10px] text-muted-foreground ml-2 capitalize">{border.category}</span>
+                        <span className="text-[10px] text-muted-foreground ml-2">{formatCurrency(border.price)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         {free ? (
