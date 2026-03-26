@@ -54,27 +54,27 @@ export default function Produtos() {
   const openNew = () => { setForm(emptyProduct); setEditing(null); setDialogOpen(true); };
   const openEdit = (p: Product) => { setForm({ ...p }); setEditing(p); setDialogOpen(true); };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name.trim()) { toast.error('Nome obrigatório'); return; }
-    if (editing) { updateProduct({ ...form, id: editing.id } as Product); toast.success('Atualizado'); }
-    else { addProduct({ ...form, id: crypto.randomUUID() } as Product); toast.success('Adicionado'); }
+    if (editing) { await updateProduct({ ...form, id: editing.id } as Product); toast.success('Atualizado'); }
+    else { await addProduct({ ...form, id: crypto.randomUUID() } as Product); toast.success('Adicionado'); }
     setDialogOpen(false);
   };
 
   const handleDelete = (id: string) => { setDeleteConfirm(id); };
-  const confirmDelete = () => { if (deleteConfirm) { deleteProduct(deleteConfirm); toast.success('Removido'); setDeleteConfirm(null); } };
+  const confirmDelete = async () => { if (deleteConfirm) { await deleteProduct(deleteConfirm); toast.success('Removido'); setDeleteConfirm(null); } };
   const addObs = () => { if (!obsInput.trim()) return; setForm({ ...form, observations: [...(form.observations || []), obsInput.trim()] }); setObsInput(''); };
 
   // Border handlers
   const openNewBorder = () => { setBorderForm(emptyBorder); setEditingBorder(null); setBorderDialogOpen(true); };
   const openEditBorder = (b: PizzaBorder) => { setBorderForm({ ...b }); setEditingBorder(b); setBorderDialogOpen(true); };
-  const handleSaveBorder = () => {
+  const handleSaveBorder = async () => {
     if (!borderForm.name.trim()) { toast.error('Nome obrigatório'); return; }
-    if (editingBorder) { updateBorder({ ...borderForm, id: editingBorder.id } as PizzaBorder); toast.success('Borda atualizada'); }
-    else { addBorder({ ...borderForm, id: crypto.randomUUID() } as PizzaBorder); toast.success('Borda adicionada'); }
+    if (editingBorder) { await updateBorder({ ...borderForm, id: editingBorder.id } as PizzaBorder); toast.success('Borda atualizada'); }
+    else { await addBorder({ ...borderForm, id: crypto.randomUUID() } as PizzaBorder); toast.success('Borda adicionada'); }
     setBorderDialogOpen(false);
   };
-  const confirmDeleteBorder = () => { if (deleteBorderConfirm) { deleteBorder(deleteBorderConfirm); toast.success('Borda removida'); setDeleteBorderConfirm(null); } };
+  const confirmDeleteBorder = async () => { if (deleteBorderConfirm) { await deleteBorder(deleteBorderConfirm); toast.success('Borda removida'); setDeleteBorderConfirm(null); } };
 
   const toggleBorderFreeSize = (sz: PizzaSize) => {
     const current = borderForm.freeSizes || [];
