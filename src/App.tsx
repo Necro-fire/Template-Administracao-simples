@@ -25,22 +25,30 @@ function AuthenticatedApp() {
     fetchAll();
   }, [fetchAll]);
 
+  // Debounced fetchAll to avoid rapid re-fetches when multiple tables change
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedFetchAll = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchAll(), 500);
+  }, [fetchAll]);
+
   // Real-time subscriptions — refetch on any change
   useEffect(() => {
     const channel = supabase
       .channel('realtime-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => fetchAll())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_registers' }, () => fetchAll())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_movements' }, () => fetchAll())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchAll())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'borders' }, () => fetchAll())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'soda_products' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, debouncedFetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_registers' }, debouncedFetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_movements' }, debouncedFetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, debouncedFetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'borders' }, debouncedFetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'soda_products' }, debouncedFetchAll)
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [fetchAll]);
+  }, [debouncedFetchAll]);
 
   if (loading) {
     return (
