@@ -342,10 +342,10 @@ export function Cart() {
               <div className="flex gap-2">
                 <Button
                   onClick={handleFinalize}
-                  disabled={totalPaid < total}
+                  disabled={totalPaid < total || isSubmitting}
                   className="flex-1 bg-success hover:bg-success/90 text-success-foreground font-bold disabled:opacity-50"
                 >
-                  Finalizar Venda
+                  {isSubmitting ? 'Finalizando...' : 'Finalizar Venda'}
                 </Button>
                 <Button onClick={() => { setShowPayment(false); setPayments([]); setSplitMode(false); setCurrentMethod(null); }} variant="outline" size="sm">
                   Voltar
