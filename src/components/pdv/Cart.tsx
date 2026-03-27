@@ -83,6 +83,8 @@ export function Cart() {
       setShowReceiptConfirm(true);
     } catch (e) {
       toast.error('Erro ao finalizar venda');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
