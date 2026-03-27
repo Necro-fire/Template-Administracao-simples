@@ -58,6 +58,7 @@ export function Cart() {
   };
 
   const handleFinalize = async () => {
+    if (isSubmitting) return;
     if (!guardCaixa()) return;
     if (totalPaid < total) { toast.error('Pagamento insuficiente'); return; }
     if (deliveryMode === 'entrega') {
@@ -66,6 +67,7 @@ export function Cart() {
         return;
       }
     }
+    setIsSubmitting(true);
     try {
       const sale = await finalizeSale(
         payments, change, customerName.trim(), customerContact.trim(), [],
