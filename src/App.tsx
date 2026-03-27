@@ -7,6 +7,7 @@ import { TopNav } from "@/components/TopNav";
 import { LoginPage } from "@/components/auth/LoginPage";
 import { useAuthStore } from "@/store/authStore";
 import { useStore } from "@/store/useStore";
+import { supabase } from "@/integrations/supabase/client";
 import PDV from "./pages/PDV";
 import Dashboard from "./pages/Dashboard";
 import Produtos from "./pages/Produtos";
@@ -22,6 +23,23 @@ function AuthenticatedApp() {
 
   useEffect(() => {
     fetchAll();
+  }, [fetchAll]);
+
+  // Real-time subscriptions — refetch on any change
+  useEffect(() => {
+    const channel = supabase
+      .channel('realtime-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_registers' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_movements' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'borders' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'soda_products' }, () => fetchAll())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchAll]);
 
   if (loading) {
