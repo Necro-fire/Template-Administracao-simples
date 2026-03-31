@@ -257,7 +257,7 @@ export function Cart() {
                     <Input
                       value={deliveryAddress.number}
                       onChange={(e) => setDeliveryAddress({ ...deliveryAddress, number: e.target.value.replace(/\D/g, '') })}
-                      placeholder="Nº (opcional)"
+                      placeholder="Nº"
                       className="bg-card border-border h-7 text-xs w-20"
                     />
                     <Input
@@ -279,6 +279,13 @@ export function Cart() {
                     placeholder="Referência"
                     className="bg-card border-border h-7 text-xs"
                   />
+                  <Input
+                    value={deliveryFeeInput}
+                    onChange={(e) => setDeliveryFeeInput(maskCurrency(e.target.value))}
+                    placeholder="R$ 0,00"
+                    className="bg-card border-border h-7 text-xs font-mono"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Taxa de entrega</p>
                 </div>
               )}
 
