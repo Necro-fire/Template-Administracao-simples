@@ -81,6 +81,7 @@ export function Cart() {
       setCustomerName(''); setCustomerContact('');
       setDeliveryMode('retirada');
       setDeliveryAddress({ name: '', phone: '', cep: '', street: '', number: '', neighborhood: '', complement: '', reference: '' });
+      setDeliveryFeeInput('');
       setShowReceiptConfirm(true);
     } catch (e) {
       toast.error('Erro ao finalizar venda');
