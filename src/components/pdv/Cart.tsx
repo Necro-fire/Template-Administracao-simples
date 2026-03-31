@@ -183,6 +183,18 @@ export function Cart() {
         </div>
 
         <div className="border-t border-border p-3 space-y-3">
+          {deliveryFeeValue > 0 && (
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Subtotal</span>
+              <span>{formatCurrency(subtotalProducts)}</span>
+            </div>
+          )}
+          {deliveryFeeValue > 0 && (
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Taxa de Entrega</span>
+              <span>{formatCurrency(deliveryFeeValue)}</span>
+            </div>
+          )}
           <div className="flex justify-between text-lg font-bold">
             <span className="text-foreground">Total</span>
             <span className="text-primary">{formatCurrency(total)}</span>

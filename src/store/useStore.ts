@@ -338,7 +338,8 @@ export const useStore = create<AppState>()((set, get) => ({
   // ===== SALES =====
   finalizeSale: async (payments, change, customerName, customerContact, observations, deliveryMode, deliveryAddress, deliveryFee) => {
     const state = get();
-    const total = state.cart.reduce((sum, i) => sum + i.calculatedPrice * i.quantity, 0);
+    const subtotal = state.cart.reduce((sum, i) => sum + i.calculatedPrice * i.quantity, 0);
+    const total = subtotal + (deliveryFee || 0);
     const code = String(state.nextSaleCode).padStart(6, '0');
     const registerId = state.cashRegister?.id || null;
 
