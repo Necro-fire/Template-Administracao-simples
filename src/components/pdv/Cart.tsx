@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useStore } from '@/store/useStore';
 import { PaymentMethod, PAYMENT_METHODS, PaymentSplit, DeliveryMode, DeliveryAddress } from '@/types/pizzaria';
 import { formatCurrency } from '@/lib/format';
-import { maskPhone, maskCEP } from '@/lib/masks';
+import { maskPhone, maskCEP, maskCurrency, parseCurrency } from '@/lib/masks';
 import { toast } from 'sonner';
 import { ReceiptDialog } from './ReceiptDialog';
 
