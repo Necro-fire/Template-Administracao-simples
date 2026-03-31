@@ -74,7 +74,7 @@ export function Cart() {
         payments, change, customerName.trim(), customerContact.trim(), [],
         deliveryMode,
         deliveryMode === 'entrega' ? deliveryAddress : undefined,
-        0
+        deliveryMode === 'entrega' ? parseCurrency(deliveryFeeInput) : 0
       );
       setLastSale(sale);
       setPayments([]); setShowPayment(false); setSplitMode(false); setCurrentMethod(null);
