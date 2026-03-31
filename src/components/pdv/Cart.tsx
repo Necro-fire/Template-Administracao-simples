@@ -32,7 +32,9 @@ export function Cart() {
   const [deliveryFeeInput, setDeliveryFeeInput] = useState('');
 
   const isOpen = cashRegister && !cashRegister.closedAt;
-  const total = cart.reduce((s, i) => s + i.calculatedPrice * i.quantity, 0);
+  const subtotalProducts = cart.reduce((s, i) => s + i.calculatedPrice * i.quantity, 0);
+  const deliveryFeeValue = deliveryMode === 'entrega' ? parseCurrency(deliveryFeeInput) : 0;
+  const total = subtotalProducts + deliveryFeeValue;
   const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
   const remaining = total - totalPaid;
   const change = totalPaid > total ? totalPaid - total : 0;
