@@ -29,6 +29,7 @@ export function Cart() {
   const [deliveryAddress, setDeliveryAddress] = useState<DeliveryAddress>({
     name: '', phone: '', cep: '', street: '', number: '', neighborhood: '', complement: '', reference: '',
   });
+  const [deliveryFeeInput, setDeliveryFeeInput] = useState('');
 
   const isOpen = cashRegister && !cashRegister.closedAt;
   const total = cart.reduce((s, i) => s + i.calculatedPrice * i.quantity, 0);
