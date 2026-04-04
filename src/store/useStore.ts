@@ -517,10 +517,12 @@ export const useStore = create<AppState>()((set, get) => ({
 
   // ===== AUDIT =====
   addAuditLog: async (action, details) => {
-    const { data } = await supabase.from('audit_logs').insert({ action, details }).select().single();
+    const authState = useAuthStore.getState();
+    const userName = authState.companyName || authState.cnpj || 'system';
+    const { data } = await supabase.from('audit_logs').insert({ action, details, user_name: userName }).select().single();
     if (data) {
       set(s => ({
-        auditLogs: [{ id: data.id, action, details, user: 'system', date: data.created_at! }, ...s.auditLogs].slice(0, 500),
+        auditLogs: [{ id: data.id, action, details, user: userName, date: data.created_at! }, ...s.auditLogs].slice(0, 500),
       }));
     }
   },
