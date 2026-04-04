@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
 import { Product, CartItem, Sale, CashRegister, CashMovement, PaymentSplit, AuditLog, PizzaSize, PizzaBorder, FreeBorderRule, FreeSodaRule, PizzaType, Category, SodaProduct } from '@/types/pizzaria';
+import { useAuthStore } from '@/store/authStore';
 
 // Helper to map DB row to Product
 const mapProduct = (row: any): Product => ({
