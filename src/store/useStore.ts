@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
 import { Product, CartItem, Sale, CashRegister, CashMovement, PaymentSplit, AuditLog, PizzaSize, PizzaBorder, FreeBorderRule, FreeSodaRule, PizzaType, Category, SodaProduct } from '@/types/pizzaria';
-import { useAuthStore } from '@/store/authStore';
 
 // Helper to map DB row to Product
 const mapProduct = (row: any): Product => ({
@@ -517,12 +516,10 @@ export const useStore = create<AppState>()((set, get) => ({
 
   // ===== AUDIT =====
   addAuditLog: async (action, details) => {
-    const authState = useAuthStore.getState();
-    const userName = authState.companyName || authState.cnpj || 'system';
-    const { data } = await supabase.from('audit_logs').insert({ action, details, user_name: userName }).select().single();
+    const { data } = await supabase.from('audit_logs').insert({ action, details }).select().single();
     if (data) {
       set(s => ({
-        auditLogs: [{ id: data.id, action, details, user: userName, date: data.created_at! }, ...s.auditLogs].slice(0, 500),
+        auditLogs: [{ id: data.id, action, details, user: 'system', date: data.created_at! }, ...s.auditLogs].slice(0, 500),
       }));
     }
   },
