@@ -177,35 +177,39 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     * { margin: 0; padding: 0; box-sizing: border-box; }
     .receipt {
       font-family: Consolas, 'Courier New', 'Lucida Console', monospace;
-      font-size: 14px;
-      line-height: 1.35;
+      font-size: 13px;
+      line-height: 1.25;
       width: 55mm;
       margin: 0 auto;
-      padding: 2mm 1.5mm;
+      padding: 1.5mm 1.5mm;
       color: #000;
       background: #fff;
-      white-space: pre;
-      word-break: break-all;
-      overflow-wrap: break-word;
     }
     .receipt div {
-      white-space: pre;
       font-family: inherit;
       font-size: inherit;
       line-height: inherit;
+      white-space: pre;
+    }
+    .receipt .ct {
+      text-align: center;
+      white-space: normal;
     }
     .receipt .company {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: bold;
+      text-align: center;
+      white-space: normal;
+      padding: 1mm 0;
     }
     .receipt .b { font-weight: bold; }
-    .receipt .sub { color: #333; font-size: 13px; }
+    .receipt .sub { color: #333; font-size: 12px; }
     .receipt .sep { color: #aaa; }
   `;
 
   const printCSS = `
     ${receiptCSS}
-    @page { size: 55mm auto; margin: 0; }
+    @page { size: 55mm 120mm; margin: 0; }
     body { margin: 0; padding: 0; }
   `;
 
