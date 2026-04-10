@@ -211,13 +211,17 @@ export function Cart() {
             </div>
           ) : (
             <div className="space-y-3 animate-fade-in max-h-[40vh] overflow-y-auto pr-1">
-              <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Nome do cliente (opcional)" className="bg-secondary border-border h-8 text-xs" />
-              <Input
-                value={customerContact}
-                onChange={(e) => setCustomerContact(maskPhone(e.target.value))}
-                placeholder="Telefone (99) 99999-9999"
-                className="bg-secondary border-border h-8 text-xs"
-              />
+              {deliveryMode === 'retirada' && (
+                <>
+                  <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Nome do cliente (opcional)" className="bg-secondary border-border h-8 text-xs" />
+                  <Input
+                    value={customerContact}
+                    onChange={(e) => setCustomerContact(maskPhone(e.target.value))}
+                    placeholder="Telefone (99) 99999-9999"
+                    className="bg-secondary border-border h-8 text-xs"
+                  />
+                </>
+              )}
 
               {/* Delivery / Pickup toggle */}
               <div className="flex gap-2">

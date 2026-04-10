@@ -12,16 +12,8 @@ interface ReceiptDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const LINE = '--------------------------------';
-const PAD = 32; // thermal 58mm ≈ 32 chars
-
-function rightAlign(left: string, right: string, width = PAD): string {
-  const gap = width - left.length - right.length;
-  return left + (gap > 0 ? ' '.repeat(gap) : ' ') + right;
-}
-
 export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) {
-  const { companyName } = useAuthStore();
+  const { companyName, cnpj, companyAddress, companyPhone } = useAuthStore();
   const [showPreview, setShowPreview] = useState(false);
 
   if (!sale) return null;
@@ -29,143 +21,156 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
   const dateStr = new Date(sale.date).toLocaleDateString('pt-BR');
   const timeStr = new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-  const paymentLabel = sale.payments
-    .map(p => PAYMENT_METHODS.find(m => m.method === p.method)?.label || p.method)
-    .join(', ');
-  const paymentTotal = formatCurrency(sale.total);
-
   const getItemLabel = (item: Sale['items'][0]) => {
     let label = item.product.name;
     if (item.pizzaSize) label = `Pizza ${item.pizzaSize} ${label}`;
     return label;
   };
 
-  const buildReceipt = (): string => {
+  const buildReceiptHTML = (): string => {
+    const SEP = '<div class="sep"></div>';
     const lines: string[] = [];
-    const center = (text: string) => {
-      const pad = Math.max(0, Math.floor((PAD - text.length) / 2));
-      return ' '.repeat(pad) + text;
-    };
 
-    // 1. Header
-    lines.push(center(`Pedido ${sale.code}`));
-    if (sale.deliveryMode === 'entrega') {
-      lines.push(center('Entrega'));
-    } else {
-      lines.push(center('Retirada'));
+    // Header - Company info
+    lines.push(`<div class="center bold">${companyName || 'Minha Empresa'}</div>`);
+    if (cnpj) lines.push(`<div class="center small">CNPJ: ${cnpj}</div>`);
+    if (companyAddress) lines.push(`<div class="center small">${companyAddress}</div>`);
+    if (companyPhone) lines.push(`<div class="center small">Tel: ${companyPhone}</div>`);
+    lines.push(SEP);
+
+    // Order info
+    lines.push(`<div class="center bold">PEDIDO #${sale.code}</div>`);
+    lines.push(`<div class="center">${sale.deliveryMode === 'entrega' ? 'ENTREGA' : 'RETIRADA'}</div>`);
+    lines.push(`<div class="center small">${dateStr} - ${timeStr}</div>`);
+    lines.push(SEP);
+
+    // Customer
+    const custName = sale.deliveryMode === 'entrega'
+      ? (sale.deliveryAddress?.name || sale.customerName)
+      : sale.customerName;
+    const custPhone = sale.deliveryMode === 'entrega'
+      ? (sale.deliveryAddress?.phone || sale.customerContact)
+      : sale.customerContact;
+
+    if (custName || custPhone) {
+      lines.push(`<div class="center bold">CLIENTE</div>`);
+      if (custName) lines.push(`<div>Nome: ${custName}</div>`);
+      if (custPhone) lines.push(`<div>Telefone: ${custPhone}</div>`);
+      lines.push(SEP);
     }
-    lines.push('');
 
-    // 2. Loja
-    lines.push(center('Loja'));
-    lines.push(center(companyName || 'Minha Loja'));
-    lines.push('');
-
-    // 3. Cliente
-    if (sale.customerName || sale.customerContact) {
-      lines.push(center('Cliente'));
-      if (sale.customerName) lines.push(`Nome: ${sale.customerName}`);
-      if (sale.customerContact) lines.push(`Telefone: ${sale.customerContact}`);
-      lines.push('');
-    }
-
-    // 4. Endereco de entrega
+    // Delivery address
     if (sale.deliveryMode === 'entrega' && sale.deliveryAddress) {
       const addr = sale.deliveryAddress;
-      lines.push(center('Endereco de entrega'));
+      lines.push(`<div class="center bold">ENDEREÇO DE ENTREGA</div>`);
       let addrLine = addr.street;
       if (addr.number) addrLine += `, ${addr.number}`;
       if (addr.neighborhood) addrLine += ` - ${addr.neighborhood}`;
-      lines.push(addrLine);
-
-      let line2Parts: string[] = [];
-      if (addr.cep) line2Parts.push(`CEP ${addr.cep}`);
-      if (line2Parts.length > 0) lines.push(line2Parts.join(' - '));
-
-      if (addr.complement) lines.push(addr.complement);
-      if (addr.reference) lines.push(addr.reference);
-      lines.push('');
+      lines.push(`<div>${addrLine}</div>`);
+      if (addr.cep) lines.push(`<div>CEP: ${addr.cep}</div>`);
+      if (addr.complement) lines.push(`<div>${addr.complement}</div>`);
+      if (addr.reference) lines.push(`<div>${addr.reference}</div>`);
+      lines.push(SEP);
     }
 
-    // 5. Itens do pedido
-    lines.push(center('Itens do pedido'));
-    lines.push(`Data: ${dateStr}`);
-    lines.push(`Hora: ${timeStr}`);
-    lines.push(LINE);
-    lines.push(rightAlign('Qtd  Itens', 'Preco'));
+    // Items
+    lines.push(`<div class="center bold">ITENS DO PEDIDO</div>`);
+    lines.push(SEP);
+
+    lines.push(`<table><thead><tr><th class="left">Qtd</th><th class="left">Item</th><th class="right">Valor</th></tr></thead><tbody>`);
 
     sale.items.forEach(item => {
-      const mainLabel = getItemLabel(item);
-      const secondLabel = item.secondFlavor ? item.secondFlavor.name : '';
-      const price = formatCurrency(item.calculatedPrice * item.quantity);
-      const qtyStr = String(item.quantity);
+      const label = getItemLabel(item);
+      const totalItem = item.calculatedPrice * item.quantity;
+      lines.push(`<tr><td>${item.quantity}</td><td>${label}</td><td class="right">${formatCurrency(totalItem)}</td></tr>`);
 
-      // First line: qty + name + price
-      const leftPart = `${qtyStr}    ${mainLabel}`;
-      lines.push(rightAlign(leftPart, price));
-
-      // Second flavor on next line (indented)
-      if (secondLabel) {
-        lines.push(`     ${secondLabel}`);
+      if (item.secondFlavor) {
+        lines.push(`<tr><td></td><td class="sub">/ ${item.secondFlavor.name}</td><td></td></tr>`);
       }
-
-      // Border info
       if (item.border) {
-        const borderPrice = item.borderFree ? 'Gratis' : formatCurrency(item.border.price);
-        lines.push(`     Borda ${item.border.name}: ${borderPrice}`);
+        const bPrice = item.borderFree ? 'Grátis' : formatCurrency(item.border.price);
+        lines.push(`<tr><td></td><td class="sub">Borda: ${item.border.name} (${bPrice})</td><td></td></tr>`);
       }
-
-      // Observations
       item.observations.forEach(obs => {
-        lines.push(`     ${obs}`);
+        lines.push(`<tr><td></td><td class="sub obs">* ${obs}</td><td></td></tr>`);
       });
-
-      lines.push('');
     });
 
-    // 6. Totals
-    lines.push(LINE);
-    const subtotal = sale.total - (sale.deliveryFee || 0);
-    lines.push(rightAlign('Itens do pedido', formatCurrency(subtotal)));
-    if (sale.deliveryFee && sale.deliveryFee > 0) {
-      lines.push(rightAlign('Taxa de entrega', formatCurrency(sale.deliveryFee)));
-    }
-    lines.push(rightAlign('Subtotal', paymentTotal));
-    lines.push(LINE);
+    lines.push(`</tbody></table>`);
+    lines.push(SEP);
 
-    // 7. Forma de pagamento
-    lines.push('');
-    lines.push('Forma de pagamento');
+    // Totals
+    const subtotal = sale.total - (sale.deliveryFee || 0);
+    lines.push(`<div class="row"><span>Itens do pedido</span><span>${formatCurrency(subtotal)}</span></div>`);
+    if (sale.deliveryFee && sale.deliveryFee > 0) {
+      lines.push(`<div class="row"><span>Taxa de entrega</span><span>${formatCurrency(sale.deliveryFee)}</span></div>`);
+    }
+    lines.push(`<div class="row bold"><span>TOTAL</span><span>${formatCurrency(sale.total)}</span></div>`);
+    lines.push(SEP);
+
+    // Payment
+    lines.push(`<div class="center bold">FORMA DE PAGAMENTO</div>`);
     sale.payments.forEach(p => {
       const label = PAYMENT_METHODS.find(m => m.method === p.method)?.label || p.method;
-      lines.push(rightAlign(label, formatCurrency(p.amount)));
+      lines.push(`<div class="row"><span>${label}</span><span>${formatCurrency(p.amount)}</span></div>`);
     });
     if (sale.change > 0) {
-      lines.push(rightAlign('Troco', formatCurrency(sale.change)));
+      lines.push(`<div class="row"><span>Troco</span><span>${formatCurrency(sale.change)}</span></div>`);
     }
-    lines.push(LINE);
+    lines.push(SEP);
 
-    // 8. Observacoes
+    // Observations
     if (sale.observations && sale.observations.length > 0) {
-      lines.push('');
-      lines.push('Observacao');
-      sale.observations.forEach(o => lines.push(o));
+      lines.push(`<div class="bold">OBSERVAÇÕES</div>`);
+      sale.observations.forEach(o => lines.push(`<div>${o}</div>`));
+      lines.push(SEP);
     }
+
+    // Footer
+    lines.push(`<div class="center bold footer">Obrigado pela preferência! Volte sempre.</div>`);
 
     return lines.join('\n');
   };
 
+  const receiptCSS = `
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      width: 80mm;
+      margin: 0 auto;
+      padding: 8px;
+      color: #000;
+    }
+    .center { text-align: center; }
+    .bold { font-weight: bold; }
+    .small { font-size: 10px; }
+    .sep { border-top: 1px solid #000; margin: 6px 0; }
+    .row { display: flex; justify-content: space-between; }
+    .footer { margin-top: 8px; font-size: 11px; }
+    .sub { font-size: 11px; padding-left: 4px; color: #333; }
+    .obs { font-style: italic; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 2px 0; vertical-align: top; }
+    th { font-weight: bold; }
+    .left { text-align: left; }
+    .right { text-align: right; }
+    th:first-child, td:first-child { width: 28px; }
+    th:last-child, td:last-child { width: 70px; text-align: right; }
+  `;
+
   const printReceipt = () => {
-    const content = buildReceipt();
+    const content = buildReceiptHTML();
     const w = window.open('', '', 'width=320,height=600');
     if (!w) return;
-    w.document.write(
-      `<html><head><style>body{font-family:monospace;font-size:12px;width:80mm;margin:0 auto;padding:10px;white-space:pre-wrap;}</style></head><body>${content}</body></html>`
-    );
+    w.document.write(`<html><head><style>${receiptCSS}</style></head><body>${content}</body></html>`);
     w.document.close();
     w.print();
     w.close();
   };
+
+  // Build a plain-text-like preview for the dialog
+  const previewHTML = buildReceiptHTML();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -189,13 +194,31 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
         </div>
 
         {showPreview && (
-          <div className="font-mono text-[11px] leading-relaxed bg-secondary border border-border text-foreground p-4 rounded-lg whitespace-pre-wrap max-h-[45vh] overflow-y-auto animate-fade-in">
-            {buildReceipt()}
+          <div className="bg-white text-black border border-border rounded-lg p-4 max-h-[45vh] overflow-y-auto animate-fade-in">
+            <style dangerouslySetInnerHTML={{ __html: `
+              .receipt-preview { font-family: Arial, Helvetica, sans-serif; font-size: 12px; }
+              .receipt-preview .center { text-align: center; }
+              .receipt-preview .bold { font-weight: bold; }
+              .receipt-preview .small { font-size: 10px; }
+              .receipt-preview .sep { border-top: 1px solid #000; margin: 6px 0; }
+              .receipt-preview .row { display: flex; justify-content: space-between; }
+              .receipt-preview .footer { margin-top: 8px; font-size: 11px; }
+              .receipt-preview .sub { font-size: 11px; padding-left: 4px; color: #333; }
+              .receipt-preview .obs { font-style: italic; }
+              .receipt-preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
+              .receipt-preview th, .receipt-preview td { padding: 2px 0; vertical-align: top; }
+              .receipt-preview th { font-weight: bold; }
+              .receipt-preview .left { text-align: left; }
+              .receipt-preview .right { text-align: right; }
+              .receipt-preview th:first-child, .receipt-preview td:first-child { width: 28px; }
+              .receipt-preview th:last-child, .receipt-preview td:last-child { width: 70px; text-align: right; }
+            `}} />
+            <div className="receipt-preview" dangerouslySetInnerHTML={{ __html: previewHTML }} />
           </div>
         )}
 
         <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
-          Nao imprimir
+          Não imprimir
         </Button>
       </DialogContent>
     </Dialog>
