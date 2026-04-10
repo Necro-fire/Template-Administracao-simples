@@ -9,6 +9,8 @@ interface AuthState {
   pin: string;
   pinUnlocked: boolean;
   companyName: string;
+  companyAddress: string;
+  companyPhone: string;
   dbLoaded: boolean;
 
   login: (cnpj: string, password: string) => Promise<boolean>;
