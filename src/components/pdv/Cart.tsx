@@ -80,13 +80,15 @@ export function Cart() {
         deliveryMode === 'entrega' ? deliveryAddress : undefined,
         deliveryMode === 'entrega' ? parseCurrency(deliveryFeeInput) : 0
       );
+      // Store sale for receipt BEFORE clearing state
       setLastSale(sale);
+      setShowReceiptConfirm(true);
+      // Reset payment state but DON'T trigger any reload
       setPayments([]); setShowPayment(false); setSplitMode(false); setCurrentMethod(null);
       setCustomerName(''); setCustomerContact('');
       setDeliveryMode('retirada');
       setDeliveryAddress({ name: '', phone: '', cep: '', street: '', number: '', neighborhood: '', complement: '', reference: '' });
       setDeliveryFeeInput('');
-      setShowReceiptConfirm(true);
     } catch (e) {
       toast.error('Erro ao finalizar venda');
     } finally {
@@ -115,12 +117,14 @@ export function Cart() {
     return label;
   };
 
+  // Show empty cart only when cart is empty AND receipt dialog is not open
   if (cart.length === 0 && !showReceiptConfirm) {
     return (
       <div className="w-80 glass-card p-4 flex flex-col items-center justify-center gap-2 shrink-0">
         <span className="text-4xl">🛒</span>
         <p className="text-muted-foreground text-sm">Carrinho vazio</p>
         <p className="text-muted-foreground text-xs">Clique em um produto para adicionar</p>
+        <ReceiptDialog sale={lastSale} open={showReceiptConfirm} onOpenChange={setShowReceiptConfirm} />
       </div>
     );
   }
@@ -258,7 +262,7 @@ export function Cart() {
                   <Input
                     value={deliveryAddress.phone}
                     onChange={(e) => setDeliveryAddress({ ...deliveryAddress, phone: maskPhone(e.target.value) })}
-                    placeholder="Telefone (opcional)"
+                    placeholder="Telefone (99) 99999-9999"
                     className="bg-card border-border h-7 text-xs"
                   />
                   <Input
