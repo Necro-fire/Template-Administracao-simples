@@ -151,7 +151,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
   const receiptCSS = `
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: Consolas, 'Courier New', monospace;
       font-size: 12px;
       width: 80mm;
       margin: 0 auto;
@@ -191,7 +191,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
   const previewHTML = buildReceiptHTML();
 
   const previewCSS = `
-    .receipt-preview { font-family: Arial, Helvetica, sans-serif; font-size: 12px; }
+    .receipt-preview { font-family: Consolas, 'Courier New', monospace; font-size: 12px; }
     .receipt-preview .center { text-align: center; }
     .receipt-preview .bold { font-weight: bold; }
     .receipt-preview .company-name { font-size: 16px; margin-bottom: 2px; }
