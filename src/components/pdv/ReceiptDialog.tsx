@@ -242,7 +242,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
         </div>
 
         {showPreview && (
-          <div className="bg-white text-black border border-border rounded-lg max-h-[50vh] overflow-y-auto animate-fade-in">
+          <div className="bg-white text-black border border-border rounded-lg max-h-[50vh] overflow-y-auto animate-fade-in flex justify-center">
             <style dangerouslySetInnerHTML={{ __html: receiptCSS }} />
             <div className="receipt" dangerouslySetInnerHTML={{ __html: receiptHTML }} />
           </div>
