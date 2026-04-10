@@ -28,6 +28,7 @@ export default function Caixa() {
   const [deleteAlertId, setDeleteAlertId] = useState<string | null>(null);
   const [errorAlert, setErrorAlert] = useState<string | null>(null);
   const [successAlert, setSuccessAlert] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isOpen = cashRegister && !cashRegister.closedAt;
 
