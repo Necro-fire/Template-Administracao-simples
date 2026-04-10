@@ -14,6 +14,7 @@ export default function PDV() {
   const [selectedPizzaId, setSelectedPizzaId] = useState<string | undefined>();
   const [showOpenDialog, setShowOpenDialog] = useState(false);
   const [initialAmount, setInitialAmount] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isOpen = cashRegister && !cashRegister.closedAt;
 
   const handlePizzaClick = (productId: string) => {
@@ -22,15 +23,21 @@ export default function PDV() {
   };
 
   const handleOpenRegister = async () => {
+    if (isSubmitting) return;
     const amount = parseFloat(initialAmount.replace(',', '.'));
     if (isNaN(amount) || amount < 0) {
       toast.error('Informe um valor válido');
       return;
     }
-    await openRegister(amount);
-    setInitialAmount('');
-    setShowOpenDialog(false);
-    toast.success('Caixa aberto!');
+    setIsSubmitting(true);
+    try {
+      await openRegister(amount);
+      setInitialAmount('');
+      setShowOpenDialog(false);
+      toast.success('Caixa aberto!');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Show alert only when: cart has items AND register is closed
