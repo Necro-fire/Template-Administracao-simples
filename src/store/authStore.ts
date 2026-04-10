@@ -55,7 +55,7 @@ async function fetchCredentialsFromDb(): Promise<Record<string, string>> {
     const { data } = await supabase
       .from('app_settings')
       .select('key, value')
-      .in('key', ['auth_password', 'auth_pin', 'auth_cnpj', 'company_name']);
+      .in('key', ['auth_password', 'auth_pin', 'auth_cnpj', 'company_name', 'company_address', 'company_phone']);
     if (data) {
       data.forEach(r => { map[r.key] = parseDbValue(r.value); });
     }
