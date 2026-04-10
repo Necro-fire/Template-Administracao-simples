@@ -54,19 +54,19 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     const ln = (t: string, cls = '') => `<div class="${cls}">${h(t).replace(/ /g, '&nbsp;')}</div>`;
     const sep = () => `<div class="sep">${SEP}</div>`;
     const b = (t: string) => ln(t, 'b');
-    const bc = (t: string) => ln(center(t), 'b');
+    const ct = (t: string, cls = '') => `<div class="ct ${cls}">${h(t)}</div>`;
 
     const p: string[] = [];
 
     // Header
-    p.push(`<div class="company">${h(center(COMPANY_NAME))}</div>`);
-    p.push(ln(center(`CNPJ: ${COMPANY_CNPJ}`)));
+    p.push(ct(COMPANY_NAME, 'company'));
+    p.push(ct(`CNPJ: ${COMPANY_CNPJ}`));
     p.push(sep());
 
     // Order
-    p.push(bc(`PEDIDO #${sale.code}`));
-    p.push(ln(center(sale.deliveryMode === 'entrega' ? 'ENTREGA' : 'RETIRADA')));
-    p.push(ln(center(`${dateStr} — ${timeStr}`)));
+    p.push(ct(`PEDIDO #${sale.code}`, 'b'));
+    p.push(ct(sale.deliveryMode === 'entrega' ? 'ENTREGA' : 'RETIRADA'));
+    p.push(ct(`${dateStr} — ${timeStr}`));
     p.push(sep());
 
     // Customer
@@ -78,7 +78,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       : sale.customerContact;
 
     if (custName || custPhone) {
-      p.push(bc('CLIENTE'));
+      p.push(ct('CLIENTE', 'b'));
       if (custName) p.push(ln(`Nome: ${custName}`));
       if (custPhone) p.push(ln(`Telefone: ${custPhone}`));
       p.push(sep());
@@ -87,7 +87,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     // Address
     if (sale.deliveryMode === 'entrega' && sale.deliveryAddress) {
       const addr = sale.deliveryAddress;
-      p.push(bc('ENDEREÇO DE ENTREGA'));
+      p.push(ct('ENDEREÇO DE ENTREGA', 'b'));
       let addrLine = addr.street;
       if (addr.number) addrLine += `, ${addr.number}`;
       if (addr.neighborhood) addrLine += ` - ${addr.neighborhood}`;
@@ -99,7 +99,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     }
 
     // Items
-    p.push(bc('ITENS DO PEDIDO'));
+    p.push(ct('ITENS DO PEDIDO', 'b'));
     p.push(b(pad('Qtd Item', 'Valor')));
 
     sale.items.forEach(item => {
@@ -147,7 +147,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     p.push(sep());
 
     // Payment
-    p.push(bc('FORMA DE PAGAMENTO'));
+    p.push(ct('FORMA DE PAGAMENTO', 'b'));
     sale.payments.forEach(pm => {
       const label = PAYMENT_METHODS.find(m => m.method === pm.method)?.label || pm.method;
       p.push(ln(pad(label, formatCurrency(pm.amount))));
@@ -159,7 +159,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
 
     // Observations
     if (sale.observations && sale.observations.length > 0) {
-      p.push(bc('OBSERVAÇÕES'));
+      p.push(ct('OBSERVAÇÕES', 'b'));
       sale.observations.forEach(o => {
         wrap(o, COL).forEach(l => p.push(ln(l)));
       });
@@ -167,8 +167,8 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     }
 
     // Footer
-    p.push(bc('Obrigado pela preferência!'));
-    p.push(bc('Volte sempre.'));
+    p.push(ct('Obrigado pela preferência!', 'b'));
+    p.push(ct('Volte sempre.'));
 
     return p.join('\n');
   };
