@@ -13,38 +13,33 @@ interface ReceiptDialogProps {
 
 const COMPANY_NAME = 'Bella Pizza';
 const COMPANY_CNPJ = '61.157280/0001-30';
-const LINE_WIDTH = 32; // characters that fit in 55mm at 9px mono
-const SEP_LINE = '-'.repeat(LINE_WIDTH);
+const COL_WIDTH = 42; // chars for 55mm at ~12px monospace
 
-function padRow(left: string, right: string): string {
-  const gap = LINE_WIDTH - left.length - right.length;
-  if (gap < 1) return left + ' ' + right;
-  return left + ' '.repeat(gap) + right;
+function pad(left: string, right: string, width = COL_WIDTH): string {
+  const gap = width - left.length - right.length;
+  return left + (gap > 0 ? ' '.repeat(gap) : ' ') + right;
 }
 
-function centerText(text: string): string {
-  const pad = Math.max(0, Math.floor((LINE_WIDTH - text.length) / 2));
-  return ' '.repeat(pad) + text;
+function center(text: string, width = COL_WIDTH): string {
+  const p = Math.max(0, Math.floor((width - text.length) / 2));
+  return ' '.repeat(p) + text;
 }
 
-function wrapText(text: string, maxWidth: number): string[] {
-  if (text.length <= maxWidth) return [text];
+function wrap(text: string, max: number): string[] {
+  if (text.length <= max) return [text];
   const words = text.split(' ');
   const lines: string[] = [];
-  let current = '';
-  for (const word of words) {
-    if (current.length === 0) {
-      current = word;
-    } else if (current.length + 1 + word.length <= maxWidth) {
-      current += ' ' + word;
-    } else {
-      lines.push(current);
-      current = word;
-    }
+  let cur = '';
+  for (const w of words) {
+    if (!cur) cur = w;
+    else if (cur.length + 1 + w.length <= max) cur += ' ' + w;
+    else { lines.push(cur); cur = w; }
   }
-  if (current) lines.push(current);
+  if (cur) lines.push(cur);
   return lines;
 }
+
+const SEP = '─'.repeat(COL_WIDTH);
 
 export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) {
   const [showPreview, setShowPreview] = useState(false);
@@ -54,26 +49,28 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
   const dateStr = new Date(sale.date).toLocaleDateString('pt-BR');
   const timeStr = new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-  const getItemLabel = (item: Sale['items'][0]) => {
-    let label = item.product.name;
-    if (item.pizzaSize) label = `Pizza ${item.pizzaSize} ${label}`;
-    return label;
-  };
+  const buildHTML = (): string => {
+    const h = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const line = (t: string, cls = '') => `<div class="${cls}">${h(t).replace(/ /g, '&nbsp;')}</div>`;
+    const sep = () => `<div class="sep">${SEP}</div>`;
+    const blank = () => '<div class="blank">&nbsp;</div>';
+    const bold = (t: string) => line(t, 'bold');
+    const boldCenter = (t: string) => line(center(t), 'bold');
 
-  const buildReceiptLines = (): string[] => {
-    const out: string[] = [];
+    const parts: string[] = [];
 
     // Header
-    out.push(centerText(COMPANY_NAME));
-    out.push(centerText(`CNPJ: ${COMPANY_CNPJ}`));
-    out.push(SEP_LINE);
-    out.push('');
+    parts.push(`<div class="company">${h(center(COMPANY_NAME))}</div>`);
+    parts.push(line(center(`CNPJ: ${COMPANY_CNPJ}`)));
+    parts.push(sep());
 
     // Order
-    out.push(centerText(`PEDIDO #${sale.code}`));
-    out.push(centerText(sale.deliveryMode === 'entrega' ? 'ENTREGA' : 'RETIRADA'));
-    out.push(centerText(`${dateStr} - ${timeStr}`));
-    out.push(SEP_LINE);
+    parts.push(blank());
+    parts.push(boldCenter(`PEDIDO #${sale.code}`));
+    parts.push(line(center(sale.deliveryMode === 'entrega' ? 'ENTREGA' : 'RETIRADA')));
+    parts.push(line(center(`${dateStr} — ${timeStr}`)));
+    parts.push(blank());
+    parts.push(sep());
 
     // Customer
     const custName = sale.deliveryMode === 'entrega'
@@ -84,181 +81,160 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       : sale.customerContact;
 
     if (custName || custPhone) {
-      out.push('');
-      out.push(centerText('CLIENTE'));
-      if (custName) out.push(`Nome: ${custName}`);
-      if (custPhone) out.push(`Tel: ${custPhone}`);
-      out.push(SEP_LINE);
+      parts.push(blank());
+      parts.push(boldCenter('CLIENTE'));
+      parts.push(blank());
+      if (custName) parts.push(line(`Nome: ${custName}`));
+      if (custPhone) parts.push(line(`Telefone: ${custPhone}`));
+      parts.push(blank());
+      parts.push(sep());
     }
 
     // Address
     if (sale.deliveryMode === 'entrega' && sale.deliveryAddress) {
       const addr = sale.deliveryAddress;
-      out.push('');
-      out.push(centerText('ENDERECO DE ENTREGA'));
+      parts.push(blank());
+      parts.push(boldCenter('ENDEREÇO DE ENTREGA'));
+      parts.push(blank());
       let addrLine = addr.street;
       if (addr.number) addrLine += `, ${addr.number}`;
       if (addr.neighborhood) addrLine += ` - ${addr.neighborhood}`;
-      wrapText(addrLine, LINE_WIDTH).forEach(l => out.push(l));
-      if (addr.cep) out.push(`CEP: ${addr.cep}`);
-      if (addr.complement) wrapText(addr.complement, LINE_WIDTH).forEach(l => out.push(l));
-      if (addr.reference) wrapText(addr.reference, LINE_WIDTH).forEach(l => out.push(l));
-      out.push(SEP_LINE);
+      wrap(addrLine, COL_WIDTH).forEach(l => parts.push(line(l)));
+      if (addr.cep) parts.push(line(`CEP: ${addr.cep}`));
+      if (addr.complement) wrap(`Compl: ${addr.complement}`, COL_WIDTH).forEach(l => parts.push(line(l)));
+      if (addr.reference) wrap(`Ref: ${addr.reference}`, COL_WIDTH).forEach(l => parts.push(line(l)));
+      parts.push(blank());
+      parts.push(sep());
     }
 
-    // Items
-    out.push('');
-    out.push(centerText('ITENS DO PEDIDO'));
-    out.push(SEP_LINE);
+    // Items header
+    parts.push(blank());
+    parts.push(boldCenter('ITENS DO PEDIDO'));
+    parts.push(blank());
+    const colHeader = pad('Qtd  Item', 'Valor');
+    parts.push(bold(colHeader));
 
+    // Items
     sale.items.forEach(item => {
-      const label = getItemLabel(item);
+      let label = item.product.name;
+      if (item.pizzaSize) label = `Pizza ${item.pizzaSize} ${label}`;
       const totalItem = item.calculatedPrice * item.quantity;
       const priceStr = formatCurrency(totalItem);
-      const qtyStr = `${item.quantity}x `;
-      const maxItemWidth = LINE_WIDTH - qtyStr.length - priceStr.length - 1;
+      const qtyStr = `${item.quantity}    `;
+      const maxW = COL_WIDTH - qtyStr.length - priceStr.length - 1;
 
-      if (label.length <= maxItemWidth) {
-        out.push(padRow(qtyStr + label, priceStr));
+      if (label.length <= maxW) {
+        parts.push(line(pad(qtyStr + label, priceStr)));
       } else {
-        const wrapped = wrapText(label, maxItemWidth);
-        out.push(padRow(qtyStr + wrapped[0], priceStr));
+        const wrapped = wrap(label, maxW);
+        parts.push(line(pad(qtyStr + wrapped[0], priceStr)));
         for (let i = 1; i < wrapped.length; i++) {
-          out.push('   ' + wrapped[i]);
+          parts.push(line('     ' + wrapped[i]));
         }
       }
 
       if (item.secondFlavor) {
-        out.push(`   / ${item.secondFlavor.name}`);
+        parts.push(line(`     / ${item.secondFlavor.name}`, 'sub'));
       }
       if (item.border) {
-        const bPrice = item.borderFree ? 'Gratis' : formatCurrency(item.border.price);
-        out.push(`   Borda: ${item.border.name} (${bPrice})`);
+        const bPrice = item.borderFree ? 'Grátis' : formatCurrency(item.border.price);
+        parts.push(line(`     Borda: ${item.border.name} (${bPrice})`, 'sub'));
+      }
+      if (item.freeSoda) {
+        parts.push(line(`     * Refrigerante grátis - Pizza ${item.pizzaSize}`, 'sub'));
       }
       item.observations.forEach(obs => {
-        out.push(`   * ${obs}`);
+        parts.push(line(`     * ${obs}`, 'sub'));
       });
     });
 
-    out.push(SEP_LINE);
+    parts.push(blank());
+    parts.push(sep());
 
     // Totals
     const subtotal = sale.total - (sale.deliveryFee || 0);
-    out.push(padRow('Itens do pedido', formatCurrency(subtotal)));
+    parts.push(blank());
+    parts.push(line(pad('Itens do pedido', formatCurrency(subtotal))));
     if (sale.deliveryFee && sale.deliveryFee > 0) {
-      out.push(padRow('Taxa de entrega', formatCurrency(sale.deliveryFee)));
+      parts.push(line(pad('Taxa de entrega', formatCurrency(sale.deliveryFee))));
     }
-    out.push(padRow('TOTAL', formatCurrency(sale.total)));
-    out.push(SEP_LINE);
+    parts.push(bold(pad('TOTAL', formatCurrency(sale.total))));
+    parts.push(blank());
+    parts.push(sep());
 
     // Payment
-    out.push('');
-    out.push(centerText('FORMA DE PAGAMENTO'));
+    parts.push(blank());
+    parts.push(boldCenter('FORMA DE PAGAMENTO'));
+    parts.push(blank());
     sale.payments.forEach(p => {
       const label = PAYMENT_METHODS.find(m => m.method === p.method)?.label || p.method;
-      out.push(padRow(label, formatCurrency(p.amount)));
+      parts.push(line(pad(label, formatCurrency(p.amount))));
     });
     if (sale.change > 0) {
-      out.push(padRow('Troco', formatCurrency(sale.change)));
+      parts.push(line(pad('Troco', formatCurrency(sale.change))));
     }
-    out.push(SEP_LINE);
+    parts.push(blank());
+    parts.push(sep());
 
     // Observations
     if (sale.observations && sale.observations.length > 0) {
-      out.push('');
-      out.push(centerText('OBSERVACOES'));
+      parts.push(blank());
+      parts.push(boldCenter('OBSERVAÇÕES'));
+      parts.push(blank());
       sale.observations.forEach(o => {
-        wrapText(o, LINE_WIDTH).forEach(l => out.push(l));
+        wrap(o, COL_WIDTH).forEach(l => parts.push(line(l)));
       });
-      out.push(SEP_LINE);
+      parts.push(blank());
+      parts.push(sep());
     }
 
     // Footer
-    out.push('');
-    out.push(centerText('Obrigado pela'));
-    out.push(centerText('preferencia!'));
-    out.push(centerText('Volte sempre.'));
-    out.push('');
+    parts.push(blank());
+    parts.push(boldCenter('Obrigado pela preferência! Volte sempre.'));
+    parts.push(blank());
 
-    return out;
+    return parts.join('\n');
   };
 
-  const buildReceiptHTML = (lines: string[]): string => {
-    return lines.map(line => {
-      if (line === SEP_LINE) return `<div class="sep-line">${SEP_LINE}</div>`;
-      if (line === '') return '<div class="blank">&nbsp;</div>';
-
-      // Bold for section titles
-      const trimmed = line.trim();
-      const isBold = [
-        COMPANY_NAME, `CNPJ: ${COMPANY_CNPJ}`,
-        'CLIENTE', 'ENDERECO DE ENTREGA', 'ITENS DO PEDIDO',
-        'FORMA DE PAGAMENTO', 'OBSERVACOES', 'TOTAL',
-        'Obrigado pela', 'preferencia!', 'Volte sempre.'
-      ].some(t => trimmed === t) || trimmed.startsWith('PEDIDO #');
-
-      const isTotalLine = trimmed.startsWith('TOTAL');
-
-      let cls = 'line';
-      if (isBold) cls += ' bold';
-      if (isTotalLine) cls += ' total-line';
-
-      return `<div class="${cls}">${line.replace(/ /g, '&nbsp;')}</div>`;
-    }).join('\n');
-  };
-
-  const receiptLines = buildReceiptLines();
-  const receiptHTML = buildReceiptHTML(receiptLines);
-
-  const sharedCSS = `
+  const receiptCSS = `
     * { margin: 0; padding: 0; box-sizing: border-box; }
     .receipt {
-      font-family: 'Courier New', Consolas, 'Lucida Console', monospace;
+      font-family: Consolas, 'Courier New', 'Lucida Console', monospace;
       font-size: 12px;
-      line-height: 1.4;
+      line-height: 1.5;
       width: 55mm;
       margin: 0 auto;
-      padding: 4mm 2mm;
+      padding: 3mm 2mm;
       color: #000;
       background: #fff;
       white-space: pre;
       word-break: break-all;
       overflow-wrap: break-word;
     }
-    .receipt .line,
-    .receipt .sep-line,
-    .receipt .blank {
+    .receipt div {
       white-space: pre;
-      font-family: 'Courier New', Consolas, 'Lucida Console', monospace;
-      font-size: 12px;
-      line-height: 1.4;
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
     }
-    .receipt .bold {
+    .receipt .company {
+      font-size: 16px;
       font-weight: bold;
+      white-space: pre;
     }
-    .receipt .total-line {
-      font-size: 13px;
-      font-weight: bold;
-    }
-    .receipt .sep-line {
-      color: #000;
-    }
-    .receipt .blank {
-      height: 6px;
-    }
+    .receipt .bold { font-weight: bold; }
+    .receipt .sub { color: #333; }
+    .receipt .sep { color: #999; }
+    .receipt .blank { height: 8px; }
   `;
 
   const printCSS = `
-    ${sharedCSS}
-    @page {
-      size: 55mm auto;
-      margin: 0;
-    }
-    body {
-      margin: 0;
-      padding: 0;
-    }
+    ${receiptCSS}
+    @page { size: 55mm auto; margin: 0; }
+    body { margin: 0; padding: 0; }
   `;
+
+  const receiptHTML = buildHTML();
 
   const printReceipt = () => {
     const w = window.open('', '', 'width=250,height=600');
@@ -292,13 +268,13 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
 
         {showPreview && (
           <div className="bg-white text-black border border-border rounded-lg max-h-[50vh] overflow-y-auto animate-fade-in">
-            <style dangerouslySetInnerHTML={{ __html: sharedCSS }} />
+            <style dangerouslySetInnerHTML={{ __html: receiptCSS }} />
             <div className="receipt" dangerouslySetInnerHTML={{ __html: receiptHTML }} />
           </div>
         )}
 
         <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
-          Nao imprimir
+          Não imprimir
         </Button>
       </DialogContent>
     </Dialog>
