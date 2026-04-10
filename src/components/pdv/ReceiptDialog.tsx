@@ -13,15 +13,15 @@ interface ReceiptDialogProps {
 
 const COMPANY_NAME = 'Bella Pizza';
 const COMPANY_CNPJ = '61.157280/0001-30';
-const COL_WIDTH = 42; // chars for 55mm at ~12px monospace
+const COL = 32; // chars that fit 55mm at 14px monospace
 
-function pad(left: string, right: string, width = COL_WIDTH): string {
-  const gap = width - left.length - right.length;
+function pad(left: string, right: string): string {
+  const gap = COL - left.length - right.length;
   return left + (gap > 0 ? ' '.repeat(gap) : ' ') + right;
 }
 
-function center(text: string, width = COL_WIDTH): string {
-  const p = Math.max(0, Math.floor((width - text.length) / 2));
+function center(text: string): string {
+  const p = Math.max(0, Math.floor((COL - text.length) / 2));
   return ' '.repeat(p) + text;
 }
 
@@ -39,7 +39,7 @@ function wrap(text: string, max: number): string[] {
   return lines;
 }
 
-const SEP = '─'.repeat(COL_WIDTH);
+const SEP = '─'.repeat(COL);
 
 export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) {
   const [showPreview, setShowPreview] = useState(false);
@@ -51,26 +51,23 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
 
   const buildHTML = (): string => {
     const h = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const line = (t: string, cls = '') => `<div class="${cls}">${h(t).replace(/ /g, '&nbsp;')}</div>`;
+    const ln = (t: string, cls = '') => `<div class="${cls}">${h(t).replace(/ /g, '&nbsp;')}</div>`;
     const sep = () => `<div class="sep">${SEP}</div>`;
-    const blank = () => '<div class="blank">&nbsp;</div>';
-    const bold = (t: string) => line(t, 'bold');
-    const boldCenter = (t: string) => line(center(t), 'bold');
+    const b = (t: string) => ln(t, 'b');
+    const bc = (t: string) => ln(center(t), 'b');
 
-    const parts: string[] = [];
+    const p: string[] = [];
 
     // Header
-    parts.push(`<div class="company">${h(center(COMPANY_NAME))}</div>`);
-    parts.push(line(center(`CNPJ: ${COMPANY_CNPJ}`)));
-    parts.push(sep());
+    p.push(`<div class="company">${h(center(COMPANY_NAME))}</div>`);
+    p.push(ln(center(`CNPJ: ${COMPANY_CNPJ}`)));
+    p.push(sep());
 
     // Order
-    parts.push(blank());
-    parts.push(boldCenter(`PEDIDO #${sale.code}`));
-    parts.push(line(center(sale.deliveryMode === 'entrega' ? 'ENTREGA' : 'RETIRADA')));
-    parts.push(line(center(`${dateStr} — ${timeStr}`)));
-    parts.push(blank());
-    parts.push(sep());
+    p.push(bc(`PEDIDO #${sale.code}`));
+    p.push(ln(center(sale.deliveryMode === 'entrega' ? 'ENTREGA' : 'RETIRADA')));
+    p.push(ln(center(`${dateStr} — ${timeStr}`)));
+    p.push(sep());
 
     // Customer
     const custName = sale.deliveryMode === 'entrega'
@@ -81,130 +78,110 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       : sale.customerContact;
 
     if (custName || custPhone) {
-      parts.push(blank());
-      parts.push(boldCenter('CLIENTE'));
-      parts.push(blank());
-      if (custName) parts.push(line(`Nome: ${custName}`));
-      if (custPhone) parts.push(line(`Telefone: ${custPhone}`));
-      parts.push(blank());
-      parts.push(sep());
+      p.push(bc('CLIENTE'));
+      if (custName) p.push(ln(`Nome: ${custName}`));
+      if (custPhone) p.push(ln(`Telefone: ${custPhone}`));
+      p.push(sep());
     }
 
     // Address
     if (sale.deliveryMode === 'entrega' && sale.deliveryAddress) {
       const addr = sale.deliveryAddress;
-      parts.push(blank());
-      parts.push(boldCenter('ENDEREÇO DE ENTREGA'));
-      parts.push(blank());
+      p.push(bc('ENDEREÇO DE ENTREGA'));
       let addrLine = addr.street;
       if (addr.number) addrLine += `, ${addr.number}`;
       if (addr.neighborhood) addrLine += ` - ${addr.neighborhood}`;
-      wrap(addrLine, COL_WIDTH).forEach(l => parts.push(line(l)));
-      if (addr.cep) parts.push(line(`CEP: ${addr.cep}`));
-      if (addr.complement) wrap(`Compl: ${addr.complement}`, COL_WIDTH).forEach(l => parts.push(line(l)));
-      if (addr.reference) wrap(`Ref: ${addr.reference}`, COL_WIDTH).forEach(l => parts.push(line(l)));
-      parts.push(blank());
-      parts.push(sep());
+      wrap(addrLine, COL).forEach(l => p.push(ln(l)));
+      if (addr.cep) p.push(ln(`CEP: ${addr.cep}`));
+      if (addr.complement) wrap(`Compl: ${addr.complement}`, COL).forEach(l => p.push(ln(l)));
+      if (addr.reference) wrap(`Ref: ${addr.reference}`, COL).forEach(l => p.push(ln(l)));
+      p.push(sep());
     }
 
-    // Items header
-    parts.push(blank());
-    parts.push(boldCenter('ITENS DO PEDIDO'));
-    parts.push(blank());
-    const colHeader = pad('Qtd  Item', 'Valor');
-    parts.push(bold(colHeader));
-
     // Items
+    p.push(bc('ITENS DO PEDIDO'));
+    p.push(b(pad('Qtd Item', 'Valor')));
+
     sale.items.forEach(item => {
       let label = item.product.name;
       if (item.pizzaSize) label = `Pizza ${item.pizzaSize} ${label}`;
       const totalItem = item.calculatedPrice * item.quantity;
       const priceStr = formatCurrency(totalItem);
-      const qtyStr = `${item.quantity}    `;
-      const maxW = COL_WIDTH - qtyStr.length - priceStr.length - 1;
+      const qtyStr = `${item.quantity}   `;
+      const maxW = COL - qtyStr.length - priceStr.length - 1;
 
       if (label.length <= maxW) {
-        parts.push(line(pad(qtyStr + label, priceStr)));
+        p.push(ln(pad(qtyStr + label, priceStr)));
       } else {
         const wrapped = wrap(label, maxW);
-        parts.push(line(pad(qtyStr + wrapped[0], priceStr)));
+        p.push(ln(pad(qtyStr + wrapped[0], priceStr)));
         for (let i = 1; i < wrapped.length; i++) {
-          parts.push(line('     ' + wrapped[i]));
+          p.push(ln('    ' + wrapped[i]));
         }
       }
 
       if (item.secondFlavor) {
-        parts.push(line(`     / ${item.secondFlavor.name}`, 'sub'));
+        p.push(ln(`    / ${item.secondFlavor.name}`, 'sub'));
       }
       if (item.border) {
         const bPrice = item.borderFree ? 'Grátis' : formatCurrency(item.border.price);
-        parts.push(line(`     Borda: ${item.border.name} (${bPrice})`, 'sub'));
+        p.push(ln(`    Borda: ${item.border.name} (${bPrice})`, 'sub'));
       }
       if (item.freeSoda) {
-        parts.push(line(`     * Refrigerante grátis - Pizza ${item.pizzaSize}`, 'sub'));
+        p.push(ln(`    * Refri grátis - Pizza ${item.pizzaSize}`, 'sub'));
       }
       item.observations.forEach(obs => {
-        parts.push(line(`     * ${obs}`, 'sub'));
+        p.push(ln(`    * ${obs}`, 'sub'));
       });
     });
 
-    parts.push(blank());
-    parts.push(sep());
+    p.push(sep());
 
     // Totals
     const subtotal = sale.total - (sale.deliveryFee || 0);
-    parts.push(blank());
-    parts.push(line(pad('Itens do pedido', formatCurrency(subtotal))));
+    p.push(ln(pad('Itens do pedido', formatCurrency(subtotal))));
     if (sale.deliveryFee && sale.deliveryFee > 0) {
-      parts.push(line(pad('Taxa de entrega', formatCurrency(sale.deliveryFee))));
+      p.push(ln(pad('Taxa de entrega', formatCurrency(sale.deliveryFee))));
     }
-    parts.push(bold(pad('TOTAL', formatCurrency(sale.total))));
-    parts.push(blank());
-    parts.push(sep());
+    p.push(b(pad('TOTAL', formatCurrency(sale.total))));
+    p.push(sep());
 
     // Payment
-    parts.push(blank());
-    parts.push(boldCenter('FORMA DE PAGAMENTO'));
-    parts.push(blank());
-    sale.payments.forEach(p => {
-      const label = PAYMENT_METHODS.find(m => m.method === p.method)?.label || p.method;
-      parts.push(line(pad(label, formatCurrency(p.amount))));
+    p.push(bc('FORMA DE PAGAMENTO'));
+    sale.payments.forEach(pm => {
+      const label = PAYMENT_METHODS.find(m => m.method === pm.method)?.label || pm.method;
+      p.push(ln(pad(label, formatCurrency(pm.amount))));
     });
     if (sale.change > 0) {
-      parts.push(line(pad('Troco', formatCurrency(sale.change))));
+      p.push(ln(pad('Troco', formatCurrency(sale.change))));
     }
-    parts.push(blank());
-    parts.push(sep());
+    p.push(sep());
 
     // Observations
     if (sale.observations && sale.observations.length > 0) {
-      parts.push(blank());
-      parts.push(boldCenter('OBSERVAÇÕES'));
-      parts.push(blank());
+      p.push(bc('OBSERVAÇÕES'));
       sale.observations.forEach(o => {
-        wrap(o, COL_WIDTH).forEach(l => parts.push(line(l)));
+        wrap(o, COL).forEach(l => p.push(ln(l)));
       });
-      parts.push(blank());
-      parts.push(sep());
+      p.push(sep());
     }
 
     // Footer
-    parts.push(blank());
-    parts.push(boldCenter('Obrigado pela preferência! Volte sempre.'));
-    parts.push(blank());
+    p.push(bc('Obrigado pela preferência!'));
+    p.push(bc('Volte sempre.'));
 
-    return parts.join('\n');
+    return p.join('\n');
   };
 
   const receiptCSS = `
     * { margin: 0; padding: 0; box-sizing: border-box; }
     .receipt {
       font-family: Consolas, 'Courier New', 'Lucida Console', monospace;
-      font-size: 12px;
-      line-height: 1.5;
+      font-size: 14px;
+      line-height: 1.35;
       width: 55mm;
       margin: 0 auto;
-      padding: 3mm 2mm;
+      padding: 2mm 1.5mm;
       color: #000;
       background: #fff;
       white-space: pre;
@@ -218,14 +195,12 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       line-height: inherit;
     }
     .receipt .company {
-      font-size: 16px;
+      font-size: 18px;
       font-weight: bold;
-      white-space: pre;
     }
-    .receipt .bold { font-weight: bold; }
-    .receipt .sub { color: #333; }
-    .receipt .sep { color: #999; }
-    .receipt .blank { height: 8px; }
+    .receipt .b { font-weight: bold; }
+    .receipt .sub { color: #333; font-size: 13px; }
+    .receipt .sep { color: #aaa; }
   `;
 
   const printCSS = `
