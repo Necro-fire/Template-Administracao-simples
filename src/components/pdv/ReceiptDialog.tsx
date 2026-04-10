@@ -13,7 +13,7 @@ interface ReceiptDialogProps {
 
 const COMPANY_NAME = 'Bella Pizza';
 const COMPANY_CNPJ = '61.157280/0001-30';
-const COL = 32; // chars that fit 55mm at 14px monospace
+const COL = 28; // chars that safely fit 55mm at 13px monospace
 
 function pad(left: string, right: string): string {
   const gap = COL - left.length - right.length;
@@ -180,20 +180,25 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       font-size: 13px;
       line-height: 1.25;
       width: 55mm;
+      max-width: 55mm;
       margin: 0 auto;
-      padding: 1.5mm 1.5mm;
+      padding: 1.5mm 2mm;
       color: #000;
       background: #fff;
+      overflow: hidden;
     }
     .receipt div {
       font-family: inherit;
       font-size: inherit;
       line-height: inherit;
       white-space: pre;
+      overflow: hidden;
+      text-overflow: clip;
     }
     .receipt .ct {
       text-align: center;
       white-space: normal;
+      word-break: break-word;
     }
     .receipt .company {
       font-size: 17px;
@@ -204,7 +209,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     }
     .receipt .b { font-weight: bold; }
     .receipt .sub { color: #333; font-size: 12px; }
-    .receipt .sep { color: #aaa; }
+    .receipt .sep { color: #aaa; overflow: hidden; }
   `;
 
   const printCSS = `
