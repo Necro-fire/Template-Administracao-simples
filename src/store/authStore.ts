@@ -26,6 +26,8 @@ interface AuthState {
 
   setCompanyName: (name: string) => void;
   setCnpj: (cnpj: string) => void;
+  setCompanyAddress: (address: string) => void;
+  setCompanyPhone: (phone: string) => void;
 
   loadFromDb: () => Promise<void>;
 }
