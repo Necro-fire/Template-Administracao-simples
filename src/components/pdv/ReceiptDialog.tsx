@@ -214,7 +214,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
 
   const printCSS = `
     ${receiptCSS}
-    @page { size: 55mm 120mm; margin: 0; }
+    @page { size: 55mm auto; margin: 0; }
     body { margin: 0; padding: 0; }
   `;
 
