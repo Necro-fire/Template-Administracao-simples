@@ -38,11 +38,17 @@ export default function Caixa() {
   );
 
   const handleOpen = async () => {
+    if (isSubmitting) return;
     const a = parseCurrency(initialAmount);
     if (a < 0) { setErrorAlert('Informe um valor inicial válido para abrir o caixa.'); return; }
-    await openRegister(a);
-    setInitialAmount('');
-    setSuccessAlert('Caixa aberto com sucesso!');
+    setIsSubmitting(true);
+    try {
+      await openRegister(a);
+      setInitialAmount('');
+      setSuccessAlert('Caixa aberto com sucesso!');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = async (data: CloseData) => {
