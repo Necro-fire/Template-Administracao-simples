@@ -72,8 +72,10 @@ export function Cart() {
     }
     setIsSubmitting(true);
     try {
+      const finalName = deliveryMode === 'entrega' ? (deliveryAddress.name || '').trim() : customerName.trim();
+      const finalContact = deliveryMode === 'entrega' ? (deliveryAddress.phone || '').trim() : customerContact.trim();
       const sale = await finalizeSale(
-        payments, change, customerName.trim(), customerContact.trim(), [],
+        payments, change, finalName, finalContact, [],
         deliveryMode,
         deliveryMode === 'entrega' ? deliveryAddress : undefined,
         deliveryMode === 'entrega' ? parseCurrency(deliveryFeeInput) : 0
