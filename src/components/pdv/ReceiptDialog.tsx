@@ -1,12 +1,10 @@
-import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Sale, PAYMENT_METHODS } from '@/types/pizzaria';
 import { formatCurrency } from '@/lib/format';
-import { Printer, Truck, User, FileText } from 'lucide-react';
+import { Printer, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
-
-type ReceiptType = 'entregador' | 'cliente' | 'completa';
+import { useState } from 'react';
 
 interface ReceiptDialogProps {
   sale: Sale | null;
@@ -14,226 +12,190 @@ interface ReceiptDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const LINE = '--------------------------------';
+const PAD = 32; // thermal 58mm ≈ 32 chars
+
+function rightAlign(left: string, right: string, width = PAD): string {
+  const gap = width - left.length - right.length;
+  return left + (gap > 0 ? ' '.repeat(gap) : ' ') + right;
+}
+
 export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) {
-  const [activePreview, setActivePreview] = useState<ReceiptType | null>(null);
-  const { companyName, cnpj } = useAuthStore();
+  const { companyName } = useAuthStore();
+  const [showPreview, setShowPreview] = useState(false);
 
   if (!sale) return null;
+
+  const dateStr = new Date(sale.date).toLocaleDateString('pt-BR');
+  const timeStr = new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  const paymentLabel = sale.payments
+    .map(p => PAYMENT_METHODS.find(m => m.method === p.method)?.label || p.method)
+    .join(', ');
+  const paymentTotal = formatCurrency(sale.total);
 
   const getItemLabel = (item: Sale['items'][0]) => {
     let label = item.product.name;
     if (item.pizzaSize) label = `Pizza ${item.pizzaSize} ${label}`;
-    if (item.secondFlavor) label += ` / ${item.secondFlavor.name}`;
     return label;
   };
 
-  const dateStr = new Date(sale.date).toLocaleDateString('pt-BR');
-  const timeStr = new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  const paymentLabel = sale.payments.map(p => PAYMENT_METHODS.find(m => m.method === p.method)?.label || p.method).join(', ');
-  const internalCost = sale.items.reduce((sum, item) => {
-    const productCost = (Number(item.product.cost) || 0) * item.quantity;
-    const borderCost = item.border ? Number(item.border.cost || 0) : 0;
-    const freeSodaCost = item.freeSoda ? Number(item.freeSoda.cost || 0) : 0;
-    return sum + productCost + borderCost + freeSodaCost;
-  }, 0);
-  const discountValue = sale.items.reduce((sum, item) => {
-    const freeBorder = item.borderFree && item.border ? Number(item.border.price || 0) : 0;
-    const freeSoda = item.freeSoda ? Number(item.freeSoda.price || 0) : 0;
-    return sum + freeBorder + freeSoda;
-  }, 0);
+  const buildReceipt = (): string => {
+    const lines: string[] = [];
+    const center = (text: string) => {
+      const pad = Math.max(0, Math.floor((PAD - text.length) / 2));
+      return ' '.repeat(pad) + text;
+    };
 
-  const renderEntregador = () => {
-    const lines: string[] = [
-      companyName.toUpperCase(),
-      cnpj ? `CNPJ: ${cnpj}` : '',
-      '',
-      'NOTA DO ENTREGADOR',
-      `Pedido: ${sale.code}`,
-      `Data: ${dateStr} | ${timeStr}`,
-      '',
-    ].filter(Boolean);
-    if (sale.deliveryMode === 'entrega' && sale.deliveryAddress) {
-      const addr = sale.deliveryAddress;
-      lines.push('ENDEREÇO DE ENTREGA:');
-      lines.push(`${addr.street}, nº ${addr.number}`);
-      lines.push(`Bairro ${addr.neighborhood}`);
-      lines.push(`CEP: ${addr.cep}`);
-      if (addr.reference) lines.push(`Referência: ${addr.reference}`);
-      if (addr.phone) lines.push(`Telefone: ${addr.phone}`);
-      lines.push('');
+    // 1. Header
+    lines.push(center(`Pedido ${sale.code}`));
+    if (sale.deliveryMode === 'entrega') {
+      lines.push(center('Entrega'));
+    } else {
+      lines.push(center('Retirada'));
     }
-    lines.push('ITENS (RESUMO):');
-    sale.items.forEach(item => {
-      lines.push(`${getItemLabel(item)}${item.quantity > 1 ? ` x${item.quantity}` : ''}`);
-    });
     lines.push('');
-    lines.push(`TOTAL A RECEBER: ${formatCurrency(sale.total)}`);
-    lines.push(`Forma de pagamento: ${paymentLabel}`);
-    if (sale.observations.length > 0) {
-      lines.push('');
-      lines.push('OBSERVAÇÕES:');
-      sale.observations.forEach(o => lines.push(o));
-    }
-    return lines.join('\n');
-  };
 
-  const renderCliente = () => {
-    const lines: string[] = [
-      companyName.toUpperCase(),
-      cnpj ? `CNPJ: ${cnpj}` : '',
-      'Obrigado pela preferência!',
-      '',
-      'NOTA DO CLIENTE',
-      `Pedido: ${sale.code}`,
-      `Data: ${dateStr} | ${timeStr}`,
-      '',
-      'Itens:',
-    ].filter(Boolean);
-    sale.items.forEach(item => {
-      const price = item.calculatedPrice * item.quantity;
-      lines.push(`${item.quantity}x ${getItemLabel(item)} .......... ${formatCurrency(price)}`);
-      if (item.border) {
-        const borderPrice = item.borderFree ? 'Grátis' : formatCurrency(item.border.price);
-        lines.push(`  • Borda ${item.border.name}: ${borderPrice}`);
-      }
-      item.observations.forEach(obs => lines.push(`  • ${obs}`));
-    });
+    // 2. Loja
+    lines.push(center('Loja'));
+    lines.push(center(companyName || 'Minha Loja'));
     lines.push('');
-    lines.push('--------------------------------------');
-    const subtotal = sale.total - (sale.deliveryFee || 0);
-    if (sale.deliveryFee && sale.deliveryFee > 0) {
-      lines.push(`Subtotal: ${formatCurrency(subtotal)}`);
-      lines.push(`Taxa de Entrega: ${formatCurrency(sale.deliveryFee)}`);
-    }
-    lines.push(`TOTAL: ${formatCurrency(sale.total)}`);
-    lines.push(`Forma de pagamento: ${paymentLabel}`);
-    if (sale.change > 0) lines.push(`Troco: ${formatCurrency(sale.change)}`);
-    lines.push('--------------------------------------');
-    lines.push('Volte sempre!');
-    return lines.join('\n');
-  };
 
-  const renderCompleta = () => {
-    const lines: string[] = [
-      `${companyName.toUpperCase()} LTDA`,
-      cnpj ? `CNPJ: ${cnpj}` : '',
-      '',
-      'NOTA COMPLETA',
-      `Pedido: ${sale.code}`,
-      `Data: ${dateStr} | ${timeStr}`,
-      '',
-    ].filter(Boolean);
+    // 3. Cliente
     if (sale.customerName || sale.customerContact) {
-      lines.push('CLIENTE:');
+      lines.push(center('Cliente'));
       if (sale.customerName) lines.push(`Nome: ${sale.customerName}`);
       if (sale.customerContact) lines.push(`Telefone: ${sale.customerContact}`);
       lines.push('');
     }
+
+    // 4. Endereco de entrega
     if (sale.deliveryMode === 'entrega' && sale.deliveryAddress) {
       const addr = sale.deliveryAddress;
-      lines.push('ENTREGA:');
-      lines.push(`${addr.street}, nº ${addr.number} – ${addr.neighborhood}`);
-      lines.push(`CEP: ${addr.cep}`);
-      if (addr.complement) lines.push(`Complemento: ${addr.complement}`);
-      if (addr.reference) lines.push(`Referência: ${addr.reference}`);
+      lines.push(center('Endereco de entrega'));
+      let addrLine = addr.street;
+      if (addr.number) addrLine += `, ${addr.number}`;
+      if (addr.neighborhood) addrLine += ` - ${addr.neighborhood}`;
+      lines.push(addrLine);
+
+      let line2Parts: string[] = [];
+      if (addr.cep) line2Parts.push(`CEP ${addr.cep}`);
+      if (line2Parts.length > 0) lines.push(line2Parts.join(' - '));
+
+      if (addr.complement) lines.push(addr.complement);
+      if (addr.reference) lines.push(addr.reference);
       lines.push('');
     }
-    lines.push('ITENS:');
+
+    // 5. Itens do pedido
+    lines.push(center('Itens do pedido'));
+    lines.push(`Data: ${dateStr}`);
+    lines.push(`Hora: ${timeStr}`);
+    lines.push(LINE);
+    lines.push(rightAlign('Qtd  Itens', 'Preco'));
+
     sale.items.forEach(item => {
-      const price = item.calculatedPrice * item.quantity;
-      lines.push(`${getItemLabel(item)} .............. ${formatCurrency(price)}`);
-      if (item.border) {
-        const borderPrice = item.borderFree ? 'Grátis' : formatCurrency(item.border.price);
-        lines.push(`  • Borda ${item.border.name}: ${borderPrice}`);
+      const mainLabel = getItemLabel(item);
+      const secondLabel = item.secondFlavor ? item.secondFlavor.name : '';
+      const price = formatCurrency(item.calculatedPrice * item.quantity);
+      const qtyStr = String(item.quantity);
+
+      // First line: qty + name + price
+      const leftPart = `${qtyStr}    ${mainLabel}`;
+      lines.push(rightAlign(leftPart, price));
+
+      // Second flavor on next line (indented)
+      if (secondLabel) {
+        lines.push(`     ${secondLabel}`);
       }
-      item.observations.forEach(obs => lines.push(`  • ${obs}`));
+
+      // Border info
+      if (item.border) {
+        const borderPrice = item.borderFree ? 'Gratis' : formatCurrency(item.border.price);
+        lines.push(`     Borda ${item.border.name}: ${borderPrice}`);
+      }
+
+      // Observations
+      item.observations.forEach(obs => {
+        lines.push(`     ${obs}`);
+      });
+
+      lines.push('');
     });
-    lines.push('');
-    lines.push('RESUMO FINANCEIRO:');
+
+    // 6. Totals
+    lines.push(LINE);
     const subtotal = sale.total - (sale.deliveryFee || 0);
-    lines.push(`Subtotal: ${formatCurrency(subtotal)}`);
-    lines.push(`Descontos/Benefícios: ${formatCurrency(discountValue)}`);
+    lines.push(rightAlign('Itens do pedido', formatCurrency(subtotal)));
     if (sale.deliveryFee && sale.deliveryFee > 0) {
-      lines.push(`Taxa de Entrega: ${formatCurrency(sale.deliveryFee)}`);
+      lines.push(rightAlign('Taxa de entrega', formatCurrency(sale.deliveryFee)));
     }
-    lines.push(`TOTAL FINAL: ${formatCurrency(sale.total)}`);
-    lines.push(`Custos internos: ${formatCurrency(internalCost)}`);
-    lines.push(`Resultado bruto: ${formatCurrency(sale.total - internalCost)}`);
-    lines.push(`Forma de pagamento: ${paymentLabel}`);
-    if (sale.change > 0) lines.push(`Troco: ${formatCurrency(sale.change)}`);
+    lines.push(rightAlign('Subtotal', paymentTotal));
+    lines.push(LINE);
+
+    // 7. Forma de pagamento
     lines.push('');
-    lines.push('Obrigado pela preferência!');
+    lines.push('Forma de pagamento');
+    sale.payments.forEach(p => {
+      const label = PAYMENT_METHODS.find(m => m.method === p.method)?.label || p.method;
+      lines.push(rightAlign(label, formatCurrency(p.amount)));
+    });
+    if (sale.change > 0) {
+      lines.push(rightAlign('Troco', formatCurrency(sale.change)));
+    }
+    lines.push(LINE);
+
+    // 8. Observacoes
+    if (sale.observations && sale.observations.length > 0) {
+      lines.push('');
+      lines.push('Observacao');
+      sale.observations.forEach(o => lines.push(o));
+    }
+
     return lines.join('\n');
   };
 
-  const getContent = (type: ReceiptType) => {
-    switch (type) {
-      case 'entregador': return renderEntregador();
-      case 'cliente': return renderCliente();
-      case 'completa': return renderCompleta();
-    }
-  };
-
-  const printReceipt = (type: ReceiptType) => {
-    const content = getContent(type);
+  const printReceipt = () => {
+    const content = buildReceipt();
     const w = window.open('', '', 'width=320,height=600');
     if (!w) return;
-    w.document.write(`<html><head><style>body{font-family:monospace;font-size:12px;width:80mm;margin:0 auto;padding:10px;white-space:pre-wrap;}</style></head><body>${content}</body></html>`);
+    w.document.write(
+      `<html><head><style>body{font-family:monospace;font-size:12px;width:80mm;margin:0 auto;padding:10px;white-space:pre-wrap;}</style></head><body>${content}</body></html>`
+    );
     w.document.close();
     w.print();
     w.close();
   };
 
-  const receiptOptions: { value: ReceiptType; label: string; icon: React.ReactNode }[] = [
-    { value: 'cliente', label: 'Nota do Cliente', icon: <User className="w-4 h-4" /> },
-    { value: 'entregador', label: 'Nota do Entregador', icon: <Truck className="w-4 h-4" /> },
-    { value: 'completa', label: 'Nota Completa', icon: <FileText className="w-4 h-4" /> },
-  ];
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-card border-border max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-foreground">Deseja imprimir alguma nota?</DialogTitle>
-          <p className="text-sm text-muted-foreground">Pedido #{sale.code}</p>
+          <DialogTitle className="text-foreground">Imprimir nota do pedido #{sale.code}?</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-2">
-          {receiptOptions.map(opt => (
-            <div key={opt.value} className="flex items-center gap-3 bg-secondary border border-border rounded-lg p-3">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                {opt.icon}
-                <span className="text-sm font-medium text-foreground">{opt.label}</span>
-              </div>
-              <div className="flex gap-1.5 shrink-0">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-xs h-8"
-                  onClick={() => setActivePreview(activePreview === opt.value ? null : opt.value)}
-                >
-                  {activePreview === opt.value ? 'Ocultar' : 'Visualizar'}
-                </Button>
-                <Button
-                  size="sm"
-                  className="text-xs h-8 gap-1"
-                  onClick={() => printReceipt(opt.value)}
-                >
-                  <Printer className="w-3.5 h-3.5" /> Imprimir
-                </Button>
-              </div>
-            </div>
-          ))}
+        <div className="flex gap-2">
+          <Button onClick={printReceipt} className="flex-1 gap-2">
+            <Printer className="w-4 h-4" /> Imprimir
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowPreview(!showPreview)}
+            title={showPreview ? 'Ocultar' : 'Visualizar'}
+          >
+            {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </Button>
         </div>
 
-        {activePreview && (
-          <div className="font-mono text-[11px] leading-relaxed bg-secondary border border-border text-foreground p-4 rounded-lg whitespace-pre-wrap max-h-[35vh] overflow-y-auto animate-fade-in">
-            {getContent(activePreview)}
+        {showPreview && (
+          <div className="font-mono text-[11px] leading-relaxed bg-secondary border border-border text-foreground p-4 rounded-lg whitespace-pre-wrap max-h-[45vh] overflow-y-auto animate-fade-in">
+            {buildReceipt()}
           </div>
         )}
 
         <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
-          Não imprimir
+          Nao imprimir
         </Button>
       </DialogContent>
     </Dialog>
