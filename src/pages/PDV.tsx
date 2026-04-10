@@ -80,8 +80,8 @@ export default function PDV() {
               onKeyDown={e => e.key === 'Enter' && handleOpenRegister()}
             />
             <div className="flex gap-2">
-              <Button onClick={handleOpenRegister} className="flex-1 bg-success hover:bg-success/90 text-success-foreground font-bold h-10">
-                Confirmar
+              <Button onClick={handleOpenRegister} disabled={isSubmitting} className="flex-1 bg-success hover:bg-success/90 text-success-foreground font-bold h-10">
+                {isSubmitting ? 'Abrindo...' : 'Confirmar'}
               </Button>
               <Button onClick={() => setShowOpenDialog(false)} variant="outline" className="h-10">
                 Cancelar
