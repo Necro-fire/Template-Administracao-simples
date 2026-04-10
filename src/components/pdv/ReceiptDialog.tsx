@@ -29,22 +29,19 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
   };
 
   const buildReceiptHTML = (): string => {
-    const SEP = '<div class="sep"></div>';
     const SPACER = '<div class="spacer"></div>';
     const lines: string[] = [];
 
     // Header - Company
     lines.push(`<div class="center bold company-name">${COMPANY_NAME}</div>`);
-    lines.push(`<div class="center">CNPJ: ${COMPANY_CNPJ}</div>`);
-    lines.push(SEP);
+    lines.push(`<div class="center cnpj">CNPJ: ${COMPANY_CNPJ}</div>`);
+    lines.push(SPACER);
 
     // Order info
-    lines.push(SPACER);
     lines.push(`<div class="center bold section-title">PEDIDO #${sale.code}</div>`);
     lines.push(`<div class="center">${sale.deliveryMode === 'entrega' ? 'ENTREGA' : 'RETIRADA'}</div>`);
-    lines.push(`<div class="center">${dateStr} — ${timeStr}</div>`);
+    lines.push(`<div class="center">${dateStr} &mdash; ${timeStr}</div>`);
     lines.push(SPACER);
-    lines.push(SEP);
 
     // Customer
     const custName = sale.deliveryMode === 'entrega'
@@ -55,34 +52,29 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       : sale.customerContact;
 
     if (custName || custPhone) {
-      lines.push(SPACER);
       lines.push(`<div class="center bold section-title">CLIENTE</div>`);
       if (custName) lines.push(`<div>Nome: ${custName}</div>`);
       if (custPhone) lines.push(`<div>Telefone: ${custPhone}</div>`);
       lines.push(SPACER);
-      lines.push(SEP);
     }
 
     // Delivery address
     if (sale.deliveryMode === 'entrega' && sale.deliveryAddress) {
       const addr = sale.deliveryAddress;
-      lines.push(SPACER);
-      lines.push(`<div class="center bold section-title">ENDEREÇO DE ENTREGA</div>`);
+      lines.push(`<div class="center bold section-title">ENDERE&Ccedil;O DE ENTREGA</div>`);
       let addrLine = addr.street;
       if (addr.number) addrLine += `, ${addr.number}`;
-      if (addr.neighborhood) addrLine += ` — ${addr.neighborhood}`;
+      if (addr.neighborhood) addrLine += ` &mdash; ${addr.neighborhood}`;
       lines.push(`<div>${addrLine}</div>`);
       if (addr.cep) lines.push(`<div>CEP: ${addr.cep}</div>`);
       if (addr.complement) lines.push(`<div>${addr.complement}</div>`);
       if (addr.reference) lines.push(`<div>${addr.reference}</div>`);
       lines.push(SPACER);
-      lines.push(SEP);
     }
 
     // Items
-    lines.push(SPACER);
     lines.push(`<div class="center bold section-title">ITENS DO PEDIDO</div>`);
-    lines.push(SPACER);
+    lines.push('<div class="spacer-sm"></div>');
 
     lines.push(`<table><thead><tr><th class="left">Qtd</th><th class="left">Item</th><th class="right">Valor</th></tr></thead><tbody>`);
 
@@ -95,7 +87,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
         lines.push(`<tr><td></td><td class="sub">/ ${item.secondFlavor.name}</td><td></td></tr>`);
       }
       if (item.border) {
-        const bPrice = item.borderFree ? 'Grátis' : formatCurrency(item.border.price);
+        const bPrice = item.borderFree ? 'Gr&aacute;tis' : formatCurrency(item.border.price);
         lines.push(`<tr><td></td><td class="sub">Borda: ${item.border.name} (${bPrice})</td><td></td></tr>`);
       }
       item.observations.forEach(obs => {
@@ -105,10 +97,8 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
 
     lines.push(`</tbody></table>`);
     lines.push(SPACER);
-    lines.push(SEP);
 
     // Totals
-    lines.push(SPACER);
     const subtotal = sale.total - (sale.deliveryFee || 0);
     lines.push(`<div class="row"><span>Itens do pedido</span><span>${formatCurrency(subtotal)}</span></div>`);
     if (sale.deliveryFee && sale.deliveryFee > 0) {
@@ -116,10 +106,8 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     }
     lines.push(`<div class="row bold total-row"><span>TOTAL</span><span>${formatCurrency(sale.total)}</span></div>`);
     lines.push(SPACER);
-    lines.push(SEP);
 
     // Payment
-    lines.push(SPACER);
     lines.push(`<div class="center bold section-title">FORMA DE PAGAMENTO</div>`);
     sale.payments.forEach(p => {
       const label = PAYMENT_METHODS.find(m => m.method === p.method)?.label || p.method;
@@ -129,20 +117,16 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       lines.push(`<div class="row"><span>Troco</span><span>${formatCurrency(sale.change)}</span></div>`);
     }
     lines.push(SPACER);
-    lines.push(SEP);
 
     // Observations
     if (sale.observations && sale.observations.length > 0) {
-      lines.push(SPACER);
-      lines.push(`<div class="bold section-title">OBSERVAÇÕES</div>`);
+      lines.push(`<div class="bold section-title">OBSERVA&Ccedil;&Otilde;ES</div>`);
       sale.observations.forEach(o => lines.push(`<div>${o}</div>`));
       lines.push(SPACER);
-      lines.push(SEP);
     }
 
     // Footer
-    lines.push(SPACER);
-    lines.push(`<div class="center bold footer">Obrigado pela preferência! Volte sempre.</div>`);
+    lines.push(`<div class="center bold footer">Obrigado pela prefer&ecirc;ncia! Volte sempre.</div>`);
     lines.push(SPACER);
 
     return lines.join('\n');
@@ -151,8 +135,8 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
   const receiptCSS = `
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: Consolas, 'Courier New', monospace;
-      font-size: 12px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 15px;
       width: 80mm;
       margin: 0 auto;
       padding: 10px;
@@ -160,56 +144,46 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     }
     .center { text-align: center; }
     .bold { font-weight: bold; }
-    .company-name { font-size: 16px; margin-bottom: 2px; }
-    .section-title { font-size: 13px; margin-bottom: 4px; }
-    .sep { border-top: 1px solid #000; margin: 4px 0; }
-    .spacer { height: 10px; }
-    .row { display: flex; justify-content: space-between; padding: 1px 0; }
-    .total-row { font-size: 14px; margin-top: 4px; }
-    .footer { margin-top: 4px; font-size: 11px; }
-    .sub { font-size: 11px; padding-left: 4px; color: #333; }
+    .company-name { font-size: 22px; margin-bottom: 4px; }
+    .cnpj { font-size: 14px; margin-bottom: 2px; }
+    .section-title { font-size: 16px; margin-bottom: 6px; margin-top: 4px; }
+    .spacer { height: 14px; }
+    .spacer-sm { height: 6px; }
+    .row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 15px; }
+    .total-row { font-size: 17px; margin-top: 6px; }
+    .footer { margin-top: 6px; font-size: 14px; }
+    .sub { font-size: 13px; padding-left: 6px; color: #333; }
     .obs { font-style: italic; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    th, td { padding: 3px 0; vertical-align: top; }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    th, td { padding: 4px 0; vertical-align: top; }
     th { font-weight: bold; }
     .left { text-align: left; }
     .right { text-align: right; }
-    th:first-child, td:first-child { width: 28px; }
-    th:last-child, td:last-child { width: 70px; text-align: right; }
+    th:first-child, td:first-child { width: 32px; }
+    th:last-child, td:last-child { width: 80px; text-align: right; }
   `;
 
-  const printReceipt = () => {
-    const content = buildReceiptHTML();
-    const w = window.open('', '', 'width=320,height=600');
-    if (!w) return;
-    w.document.write(`<html><head><style>${receiptCSS}</style></head><body>${content}</body></html>`);
-    w.document.close();
-    w.print();
-    w.close();
-  };
-
-  const previewHTML = buildReceiptHTML();
-
   const previewCSS = `
-    .receipt-preview { font-family: Consolas, 'Courier New', monospace; font-size: 12px; }
+    .receipt-preview { font-family: Arial, Helvetica, sans-serif; font-size: 15px; }
     .receipt-preview .center { text-align: center; }
     .receipt-preview .bold { font-weight: bold; }
-    .receipt-preview .company-name { font-size: 16px; margin-bottom: 2px; }
-    .receipt-preview .section-title { font-size: 13px; margin-bottom: 4px; }
-    .receipt-preview .sep { border-top: 1px solid #000; margin: 4px 0; }
-    .receipt-preview .spacer { height: 10px; }
-    .receipt-preview .row { display: flex; justify-content: space-between; padding: 1px 0; }
-    .receipt-preview .total-row { font-size: 14px; margin-top: 4px; }
-    .receipt-preview .footer { margin-top: 4px; font-size: 11px; }
-    .receipt-preview .sub { font-size: 11px; padding-left: 4px; color: #333; }
+    .receipt-preview .company-name { font-size: 22px; margin-bottom: 4px; }
+    .receipt-preview .cnpj { font-size: 14px; margin-bottom: 2px; }
+    .receipt-preview .section-title { font-size: 16px; margin-bottom: 6px; margin-top: 4px; }
+    .receipt-preview .spacer { height: 14px; }
+    .receipt-preview .spacer-sm { height: 6px; }
+    .receipt-preview .row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 15px; }
+    .receipt-preview .total-row { font-size: 17px; margin-top: 6px; }
+    .receipt-preview .footer { margin-top: 6px; font-size: 14px; }
+    .receipt-preview .sub { font-size: 13px; padding-left: 6px; color: #333; }
     .receipt-preview .obs { font-style: italic; }
-    .receipt-preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    .receipt-preview th, .receipt-preview td { padding: 3px 0; vertical-align: top; }
+    .receipt-preview table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    .receipt-preview th, .receipt-preview td { padding: 4px 0; vertical-align: top; }
     .receipt-preview th { font-weight: bold; }
     .receipt-preview .left { text-align: left; }
     .receipt-preview .right { text-align: right; }
-    .receipt-preview th:first-child, .receipt-preview td:first-child { width: 28px; }
-    .receipt-preview th:last-child, .receipt-preview td:last-child { width: 70px; text-align: right; }
+    .receipt-preview th:first-child, .receipt-preview td:first-child { width: 32px; }
+    .receipt-preview th:last-child, .receipt-preview td:last-child { width: 80px; text-align: right; }
   `;
 
   return (
