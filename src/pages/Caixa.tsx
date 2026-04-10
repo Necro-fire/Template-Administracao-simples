@@ -52,29 +52,41 @@ export default function Caixa() {
   };
 
   const handleClose = async (data: CloseData) => {
-    const informedAmount = data.cashInRegister + data.cashToSafe + data.cardDebit + data.cardCredit + data.pix + data.online;
-    await closeRegister(informedAmount);
-    await addAuditLog('REGISTER_CLOSE_DETAIL', JSON.stringify({
-      cashInRegister: data.cashInRegister,
-      cashToSafe: data.cashToSafe,
-      cashForChange: data.cashForChange,
-      cardDebit: data.cardDebit,
-      cardCredit: data.cardCredit,
-      pix: data.pix,
-      online: data.online,
-      observations: data.observations,
-    }));
-    setCloseDialogOpen(false);
-    setSuccessAlert('Caixa fechado com sucesso! Dados salvos no histórico.');
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const informedAmount = data.cashInRegister + data.cashToSafe + data.cardDebit + data.cardCredit + data.pix + data.online;
+      await closeRegister(informedAmount);
+      await addAuditLog('REGISTER_CLOSE_DETAIL', JSON.stringify({
+        cashInRegister: data.cashInRegister,
+        cashToSafe: data.cashToSafe,
+        cashForChange: data.cashForChange,
+        cardDebit: data.cardDebit,
+        cardCredit: data.cardCredit,
+        pix: data.pix,
+        online: data.online,
+        observations: data.observations,
+      }));
+      setCloseDialogOpen(false);
+      setSuccessAlert('Caixa fechado com sucesso! Dados salvos no histórico.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleMovement = async () => {
+    if (isSubmitting) return;
     if (!isOpen) { setErrorAlert('Caixa fechado. Abra o caixa para continuar.'); return; }
     const a = parseCurrency(movAmount);
     if (a <= 0) { setErrorAlert('Informe um valor válido para a movimentação.'); return; }
-    await addMovement({ type: movType, amount: a, description: movDesc || movType, origin: 'manual' });
-    setMovAmount(''); setMovDesc('');
-    setSuccessAlert('Movimentação registrada com sucesso!');
+    setIsSubmitting(true);
+    try {
+      await addMovement({ type: movType, amount: a, description: movDesc || movType, origin: 'manual' });
+      setMovAmount(''); setMovDesc('');
+      setSuccessAlert('Movimentação registrada com sucesso!');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDeleteMovement = async () => {
