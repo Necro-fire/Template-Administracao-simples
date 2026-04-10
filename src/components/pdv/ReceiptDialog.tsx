@@ -186,6 +186,18 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     .receipt-preview th:last-child, .receipt-preview td:last-child { width: 80px; text-align: right; }
   `;
 
+  const printReceipt = () => {
+    const content = buildReceiptHTML();
+    const w = window.open('', '', 'width=320,height=600');
+    if (!w) return;
+    w.document.write(`<html><head><meta charset="utf-8"><style>${receiptCSS}</style></head><body>${content}</body></html>`);
+    w.document.close();
+    w.print();
+    w.close();
+  };
+
+  const previewHTML = buildReceiptHTML();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-card border-border max-w-md">
