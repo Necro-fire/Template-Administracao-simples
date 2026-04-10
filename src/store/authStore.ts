@@ -72,6 +72,8 @@ export const useAuthStore = create<AuthState>()(
       pin: '',
       pinUnlocked: false,
       companyName: '',
+      companyAddress: '',
+      companyPhone: '',
       dbLoaded: false,
 
       loadFromDb: async () => {
@@ -81,6 +83,8 @@ export const useAuthStore = create<AuthState>()(
           pin: map.auth_pin || '',
           cnpj: map.auth_cnpj || '',
           companyName: map.company_name || '',
+          companyAddress: map.company_address || '',
+          companyPhone: map.company_phone || '',
           dbLoaded: true,
         });
       },
@@ -101,6 +105,8 @@ export const useAuthStore = create<AuthState>()(
             pin: map.auth_pin || '',
             cnpj: dbCnpj,
             companyName: map.company_name || '',
+            companyAddress: map.company_address || '',
+            companyPhone: map.company_phone || '',
             dbLoaded: true,
           });
           return true;
@@ -159,6 +165,16 @@ export const useAuthStore = create<AuthState>()(
       setCnpj: (cnpj) => {
         set({ cnpj });
         saveToDb('auth_cnpj', cnpj);
+      },
+
+      setCompanyAddress: (address) => {
+        set({ companyAddress: address });
+        saveToDb('company_address', address);
+      },
+
+      setCompanyPhone: (phone) => {
+        set({ companyPhone: phone });
+        saveToDb('company_phone', phone);
       },
     }),
     {
