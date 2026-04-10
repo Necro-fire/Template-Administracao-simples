@@ -54,19 +54,19 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     const ln = (t: string, cls = '') => `<div class="${cls}">${h(t).replace(/ /g, '&nbsp;')}</div>`;
     const sep = () => `<div class="sep">${SEP}</div>`;
     const b = (t: string) => ln(t, 'b');
-    const bc = (t: string) => ln(center(t), 'b');
+    const ct = (t: string, cls = '') => `<div class="ct ${cls}">${h(t)}</div>`;
 
     const p: string[] = [];
 
     // Header
-    p.push(`<div class="company">${h(center(COMPANY_NAME))}</div>`);
-    p.push(ln(center(`CNPJ: ${COMPANY_CNPJ}`)));
+    p.push(ct(COMPANY_NAME, 'company'));
+    p.push(ct(`CNPJ: ${COMPANY_CNPJ}`));
     p.push(sep());
 
     // Order
-    p.push(bc(`PEDIDO #${sale.code}`));
-    p.push(ln(center(sale.deliveryMode === 'entrega' ? 'ENTREGA' : 'RETIRADA')));
-    p.push(ln(center(`${dateStr} — ${timeStr}`)));
+    p.push(ct(`PEDIDO #${sale.code}`, 'b'));
+    p.push(ct(sale.deliveryMode === 'entrega' ? 'ENTREGA' : 'RETIRADA'));
+    p.push(ct(`${dateStr} — ${timeStr}`));
     p.push(sep());
 
     // Customer
@@ -78,7 +78,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       : sale.customerContact;
 
     if (custName || custPhone) {
-      p.push(bc('CLIENTE'));
+      p.push(ct('CLIENTE', 'b'));
       if (custName) p.push(ln(`Nome: ${custName}`));
       if (custPhone) p.push(ln(`Telefone: ${custPhone}`));
       p.push(sep());
@@ -87,7 +87,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     // Address
     if (sale.deliveryMode === 'entrega' && sale.deliveryAddress) {
       const addr = sale.deliveryAddress;
-      p.push(bc('ENDEREÇO DE ENTREGA'));
+      p.push(ct('ENDEREÇO DE ENTREGA', 'b'));
       let addrLine = addr.street;
       if (addr.number) addrLine += `, ${addr.number}`;
       if (addr.neighborhood) addrLine += ` - ${addr.neighborhood}`;
@@ -99,7 +99,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     }
 
     // Items
-    p.push(bc('ITENS DO PEDIDO'));
+    p.push(ct('ITENS DO PEDIDO', 'b'));
     p.push(b(pad('Qtd Item', 'Valor')));
 
     sale.items.forEach(item => {
@@ -147,7 +147,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     p.push(sep());
 
     // Payment
-    p.push(bc('FORMA DE PAGAMENTO'));
+    p.push(ct('FORMA DE PAGAMENTO', 'b'));
     sale.payments.forEach(pm => {
       const label = PAYMENT_METHODS.find(m => m.method === pm.method)?.label || pm.method;
       p.push(ln(pad(label, formatCurrency(pm.amount))));
@@ -159,7 +159,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
 
     // Observations
     if (sale.observations && sale.observations.length > 0) {
-      p.push(bc('OBSERVAÇÕES'));
+      p.push(ct('OBSERVAÇÕES', 'b'));
       sale.observations.forEach(o => {
         wrap(o, COL).forEach(l => p.push(ln(l)));
       });
@@ -167,8 +167,8 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     }
 
     // Footer
-    p.push(bc('Obrigado pela preferência!'));
-    p.push(bc('Volte sempre.'));
+    p.push(ct('Obrigado pela preferência!', 'b'));
+    p.push(ct('Volte sempre.'));
 
     return p.join('\n');
   };
@@ -177,35 +177,39 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     * { margin: 0; padding: 0; box-sizing: border-box; }
     .receipt {
       font-family: Consolas, 'Courier New', 'Lucida Console', monospace;
-      font-size: 14px;
-      line-height: 1.35;
+      font-size: 13px;
+      line-height: 1.25;
       width: 55mm;
       margin: 0 auto;
-      padding: 2mm 1.5mm;
+      padding: 1.5mm 1.5mm;
       color: #000;
       background: #fff;
-      white-space: pre;
-      word-break: break-all;
-      overflow-wrap: break-word;
     }
     .receipt div {
-      white-space: pre;
       font-family: inherit;
       font-size: inherit;
       line-height: inherit;
+      white-space: pre;
+    }
+    .receipt .ct {
+      text-align: center;
+      white-space: normal;
     }
     .receipt .company {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: bold;
+      text-align: center;
+      white-space: normal;
+      padding: 1mm 0;
     }
     .receipt .b { font-weight: bold; }
-    .receipt .sub { color: #333; font-size: 13px; }
+    .receipt .sub { color: #333; font-size: 12px; }
     .receipt .sep { color: #aaa; }
   `;
 
   const printCSS = `
     ${receiptCSS}
-    @page { size: 55mm auto; margin: 0; }
+    @page { size: 55mm 120mm; margin: 0; }
     body { margin: 0; padding: 0; }
   `;
 
