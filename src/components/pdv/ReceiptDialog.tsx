@@ -11,35 +11,18 @@ interface ReceiptDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const COMPANY_NAME = 'Bella Pizza';
+const COMPANY_NAME = 'BELLA PIZZA';
 const COMPANY_CNPJ = '61.157280/0001-30';
-const COL = 28; // chars that safely fit 55mm at 13px monospace
 
-function pad(left: string, right: string): string {
-  const gap = COL - left.length - right.length;
-  return left + (gap > 0 ? ' '.repeat(gap) : ' ') + right;
+/** Remove all accents/diacritics from text */
+function stripAccents(text: string): string {
+  return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
-function center(text: string): string {
-  const p = Math.max(0, Math.floor((COL - text.length) / 2));
-  return ' '.repeat(p) + text;
+/** Escape HTML */
+function h(s: string): string {
+  return stripAccents(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
-
-function wrap(text: string, max: number): string[] {
-  if (text.length <= max) return [text];
-  const words = text.split(' ');
-  const lines: string[] = [];
-  let cur = '';
-  for (const w of words) {
-    if (!cur) cur = w;
-    else if (cur.length + 1 + w.length <= max) cur += ' ' + w;
-    else { lines.push(cur); cur = w; }
-  }
-  if (cur) lines.push(cur);
-  return lines;
-}
-
-const SEP = '─'.repeat(COL);
 
 export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) {
   const [showPreview, setShowPreview] = useState(false);
@@ -50,26 +33,28 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
   const timeStr = new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
   const buildHTML = (): string => {
-    const h = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const ln = (t: string, cls = '') => `<div class="${cls}">${h(t).replace(/ /g, '&nbsp;')}</div>`;
-    const sep = () => `<div class="sep">${SEP}</div>`;
-    const b = (t: string) => ln(t, 'b');
-    const ct = (t: string, cls = '') => `<div class="ct ${cls}">${h(t)}</div>`;
+    const line = (t: string, cls = '') => `<div class="${cls}">${h(t)}</div>`;
+    const center = (t: string, cls = '') => `<div class="ct ${cls}">${h(t)}</div>`;
+    const bold = (t: string, cls = '') => center(t, `b ${cls}`);
+    const sep = () => `<div class="sep">────────────────────────────</div>`;
+    const row = (left: string, right: string) =>
+      `<div class="row"><span>${h(left)}</span><span>${h(right)}</span></div>`;
 
     const p: string[] = [];
 
-    // Header
-    p.push(ct(COMPANY_NAME, 'company'));
-    p.push(ct(`CNPJ: ${COMPANY_CNPJ}`));
+    // ── HEADER ──
+    p.push(bold(COMPANY_NAME, 'company'));
+    p.push(center(`CNPJ: ${COMPANY_CNPJ}`));
+    p.push(center('CUPOM FISCAL'));
     p.push(sep());
 
-    // Order
-    p.push(ct(`PEDIDO #${sale.code}`, 'b'));
-    p.push(ct(sale.deliveryMode === 'entrega' ? 'ENTREGA' : 'RETIRADA'));
-    p.push(ct(`${dateStr} — ${timeStr}`));
+    // ── ORDER ──
+    p.push(bold(`PEDIDO #${sale.code}`));
+    p.push(center(sale.deliveryMode === 'entrega' ? 'ENTREGA' : 'RETIRADA'));
+    p.push(center(`${dateStr} - ${timeStr}`));
     p.push(sep());
 
-    // Customer
+    // ── CUSTOMER ──
     const custName = sale.deliveryMode === 'entrega'
       ? (sale.deliveryAddress?.name || sale.customerName)
       : sale.customerName;
@@ -78,97 +63,82 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       : sale.customerContact;
 
     if (custName || custPhone) {
-      p.push(ct('CLIENTE', 'b'));
-      if (custName) p.push(ln(`Nome: ${custName}`));
-      if (custPhone) p.push(ln(`Telefone: ${custPhone}`));
+      p.push(bold('CLIENTE'));
+      if (custName) p.push(line(`Nome: ${custName}`));
+      if (custPhone) p.push(line(`Tel: ${custPhone}`));
       p.push(sep());
     }
 
-    // Address
+    // ── ADDRESS ──
     if (sale.deliveryMode === 'entrega' && sale.deliveryAddress) {
       const addr = sale.deliveryAddress;
-      p.push(ct('ENDEREÇO DE ENTREGA', 'b'));
+      p.push(bold('ENDERECO DE ENTREGA'));
       let addrLine = addr.street;
       if (addr.number) addrLine += `, ${addr.number}`;
       if (addr.neighborhood) addrLine += ` - ${addr.neighborhood}`;
-      wrap(addrLine, COL).forEach(l => p.push(ln(l)));
-      if (addr.cep) p.push(ln(`CEP: ${addr.cep}`));
-      if (addr.complement) wrap(`Compl: ${addr.complement}`, COL).forEach(l => p.push(ln(l)));
-      if (addr.reference) wrap(`Ref: ${addr.reference}`, COL).forEach(l => p.push(ln(l)));
+      p.push(line(addrLine));
+      if (addr.cep) p.push(line(`CEP: ${addr.cep}`));
+      if (addr.complement) p.push(line(`Compl: ${addr.complement}`));
+      if (addr.reference) p.push(line(`Ref: ${addr.reference}`));
       p.push(sep());
     }
 
-    // Items
-    p.push(ct('ITENS DO PEDIDO', 'b'));
-    p.push(b(pad('Qtd Item', 'Valor')));
+    // ── ITEMS ──
+    p.push(bold('ITENS DO PEDIDO'));
 
     sale.items.forEach(item => {
       let label = item.product.name;
       if (item.pizzaSize) label = `Pizza ${item.pizzaSize} ${label}`;
       const totalItem = item.calculatedPrice * item.quantity;
-      const priceStr = formatCurrency(totalItem);
-      const qtyStr = `${item.quantity}   `;
-      const maxW = COL - qtyStr.length - priceStr.length - 1;
-
-      if (label.length <= maxW) {
-        p.push(ln(pad(qtyStr + label, priceStr)));
-      } else {
-        const wrapped = wrap(label, maxW);
-        p.push(ln(pad(qtyStr + wrapped[0], priceStr)));
-        for (let i = 1; i < wrapped.length; i++) {
-          p.push(ln('    ' + wrapped[i]));
-        }
-      }
+      p.push(row(`${item.quantity}x ${label}`, formatCurrency(totalItem)));
 
       if (item.secondFlavor) {
-        p.push(ln(`    / ${item.secondFlavor.name}`, 'sub'));
+        p.push(line(`  / ${item.secondFlavor.name}`, 'sub'));
       }
       if (item.border) {
-        const bPrice = item.borderFree ? 'Grátis' : formatCurrency(item.border.price);
-        p.push(ln(`    Borda: ${item.border.name} (${bPrice})`, 'sub'));
+        const bPrice = item.borderFree ? 'Gratis' : formatCurrency(item.border.price);
+        p.push(line(`  Borda: ${item.border.name} (${bPrice})`, 'sub'));
       }
       if (item.freeSoda) {
-        p.push(ln(`    * Refri grátis - Pizza ${item.pizzaSize}`, 'sub'));
+        p.push(line(`  * Refri gratis`, 'sub'));
       }
       item.observations.forEach(obs => {
-        p.push(ln(`    * ${obs}`, 'sub'));
+        p.push(line(`  * ${obs}`, 'sub'));
       });
     });
 
     p.push(sep());
 
-    // Totals
+    // ── TOTALS ──
     const subtotal = sale.total - (sale.deliveryFee || 0);
-    p.push(ln(pad('Itens do pedido', formatCurrency(subtotal))));
+    p.push(row('Subtotal', formatCurrency(subtotal)));
     if (sale.deliveryFee && sale.deliveryFee > 0) {
-      p.push(ln(pad('Taxa de entrega', formatCurrency(sale.deliveryFee))));
+      p.push(row('Taxa entrega', formatCurrency(sale.deliveryFee)));
     }
-    p.push(b(pad('TOTAL', formatCurrency(sale.total))));
+    p.push(`<div class="row b"><span>${h('TOTAL')}</span><span>${h(formatCurrency(sale.total))}</span></div>`);
     p.push(sep());
 
-    // Payment
-    p.push(ct('FORMA DE PAGAMENTO', 'b'));
+    // ── PAYMENT ──
+    p.push(bold('PAGAMENTO'));
     sale.payments.forEach(pm => {
       const label = PAYMENT_METHODS.find(m => m.method === pm.method)?.label || pm.method;
-      p.push(ln(pad(label, formatCurrency(pm.amount))));
+      p.push(row(label, formatCurrency(pm.amount)));
     });
     if (sale.change > 0) {
-      p.push(ln(pad('Troco', formatCurrency(sale.change))));
+      p.push(row('Troco', formatCurrency(sale.change)));
     }
-    p.push(sep());
 
-    // Observations
+    // ── OBSERVATIONS ──
     if (sale.observations && sale.observations.length > 0) {
-      p.push(ct('OBSERVAÇÕES', 'b'));
-      sale.observations.forEach(o => {
-        wrap(o, COL).forEach(l => p.push(ln(l)));
-      });
       p.push(sep());
+      p.push(bold('OBSERVACOES'));
+      sale.observations.forEach(o => p.push(line(o)));
     }
 
-    // Footer
-    p.push(ct('Obrigado pela preferência!', 'b'));
-    p.push(ct('Volte sempre.'));
+    // ── FOOTER (always last) ──
+    p.push(sep());
+    p.push(bold('Obrigado pela preferencia!'));
+    p.push(center('Volte sempre.'));
 
     return p.join('\n');
   };
@@ -178,38 +148,30 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     .receipt {
       font-family: Consolas, 'Courier New', 'Lucida Console', monospace;
       font-size: 13px;
-      line-height: 1.25;
+      line-height: 1.2;
       width: 55mm;
-      max-width: 55mm;
       margin: 0 auto;
-      padding: 1.5mm 2mm;
+      padding: 1mm 2mm;
       color: #000;
       background: #fff;
-      overflow: hidden;
+      text-align: center;
     }
     .receipt div {
       font-family: inherit;
       font-size: inherit;
       line-height: inherit;
-      white-space: pre;
-      overflow: hidden;
-      text-overflow: clip;
     }
-    .receipt .ct {
-      text-align: center;
-      white-space: normal;
-      word-break: break-word;
-    }
-    .receipt .company {
-      font-size: 17px;
-      font-weight: bold;
-      text-align: center;
-      white-space: normal;
-      padding: 1mm 0;
-    }
+    .receipt .ct { text-align: center; }
+    .receipt .company { font-size: 16px; font-weight: bold; }
     .receipt .b { font-weight: bold; }
-    .receipt .sub { color: #333; font-size: 12px; }
-    .receipt .sep { color: #aaa; overflow: hidden; }
+    .receipt .sub { color: #333; font-size: 12px; text-align: left; }
+    .receipt .sep { color: #aaa; }
+    .receipt .row {
+      display: flex;
+      justify-content: space-between;
+      text-align: left;
+    }
+    .receipt .row span:last-child { text-align: right; white-space: nowrap; }
   `;
 
   const printCSS = `
@@ -233,7 +195,9 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-card border-border max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-foreground">Imprimir nota do pedido #{sale.code}?</DialogTitle>
+          <DialogTitle className="text-foreground">
+            {stripAccents(`Imprimir nota do pedido #${sale.code}?`)}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="flex gap-2">
@@ -258,7 +222,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
         )}
 
         <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
-          Não imprimir
+          {stripAccents('Não imprimir')}
         </Button>
       </DialogContent>
     </Dialog>
