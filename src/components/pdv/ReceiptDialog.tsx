@@ -14,6 +14,41 @@ interface ReceiptDialogProps {
 const COMPANY_NAME = 'Bella Pizza';
 const COMPANY_CNPJ = '61.157280/0001-30';
 
+/** Remove all accents and special characters from text */
+const stripAccents = (text: string): string => {
+  if (!text) return '';
+  // Normalize to NFD to separate base characters from diacritics
+  let result = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  
+  // Replace common special characters that thermal printers can't handle
+  const specialChars: { [key: string]: string } = {
+    'ç': 'c',
+    'Ç': 'C',
+    'ã': 'a',
+    'õ': 'o',
+    'Ã': 'A',
+    'Õ': 'O',
+    '—': '-',  // em dash to hyphen
+    '–': '-',  // en dash to hyphen
+    '…': '...',  // ellipsis
+    '®': '',   // registered sign
+    '™': '',   // trademark sign
+    '©': '',   // copyright sign
+    '°': 'o',  // degree symbol
+    'º': 'o',  // ordinal indicator
+    'ª': 'a',  // feminine ordinal
+  };
+  
+  Object.keys(specialChars).forEach(char => {
+    result = result.split(char).join(specialChars[char]);
+  });
+  
+  // Remove any remaining non-ASCII printable characters
+  result = result.replace(/[^\u0020-\u007E\n\t]/g, '');
+  
+  return result;
+};
+
 export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) {
   const [showPreview, setShowPreview] = useState(false);
 
@@ -29,22 +64,22 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
   };
 
   const buildReceiptHTML = (): string => {
-    const SEP = '<div class="sep"></div>';
+    const SEP = '<div class="sep">--------------------------------------------------</div>';
     const SPACER = '<div class="spacer"></div>';
-    const lines: string[] = [];
+    const mainLines: string[] = [];
 
     // Header - Company
-    lines.push(`<div class="center bold company-name">${COMPANY_NAME}</div>`);
-    lines.push(`<div class="center">CNPJ: ${COMPANY_CNPJ}</div>`);
-    lines.push(SEP);
+    mainLines.push(`<div class="center bold company-name">${COMPANY_NAME}</div>`);
+    mainLines.push(`<div class="center">CNPJ: ${COMPANY_CNPJ}</div>`);
+    mainLines.push(SEP);
 
     // Order info
-    lines.push(SPACER);
-    lines.push(`<div class="center bold section-title">PEDIDO #${sale.code}</div>`);
-    lines.push(`<div class="center">${sale.deliveryMode === 'entrega' ? 'ENTREGA' : 'RETIRADA'}</div>`);
-    lines.push(`<div class="center">${dateStr} — ${timeStr}</div>`);
-    lines.push(SPACER);
-    lines.push(SEP);
+    mainLines.push(SPACER);
+    mainLines.push(`<div class="center bold section-title">PEDIDO #${sale.code}</div>`);
+    mainLines.push(`<div class="center">${sale.deliveryMode === 'entrega' ? 'ENTREGA' : 'RETIRADA'}</div>`);
+    mainLines.push(`<div class="center">${dateStr} - ${timeStr}</div>`);
+    mainLines.push(SPACER);
+    mainLines.push(SEP);
 
     // Customer
     const custName = sale.deliveryMode === 'entrega'
@@ -55,118 +90,152 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       : sale.customerContact;
 
     if (custName || custPhone) {
-      lines.push(SPACER);
-      lines.push(`<div class="center bold section-title">CLIENTE</div>`);
-      if (custName) lines.push(`<div>Nome: ${custName}</div>`);
-      if (custPhone) lines.push(`<div>Telefone: ${custPhone}</div>`);
-      lines.push(SPACER);
-      lines.push(SEP);
+      mainLines.push(SEP);
+      mainLines.push(SPACER);
+      mainLines.push(`<div class="center bold section-title">CLIENTE</div>`);
+      if (custName) mainLines.push(`<div>Nome: ${stripAccents(custName)}</div>`);
+      if (custPhone) mainLines.push(`<div>Telefone: ${stripAccents(custPhone)}</div>`);
+      mainLines.push(SPACER);
+      mainLines.push(SEP);
     }
 
     // Delivery address
     if (sale.deliveryMode === 'entrega' && sale.deliveryAddress) {
       const addr = sale.deliveryAddress;
-      lines.push(SPACER);
-      lines.push(`<div class="center bold section-title">ENDEREÇO DE ENTREGA</div>`);
-      let addrLine = addr.street;
+      mainLines.push(SPACER);
+      mainLines.push(`<div class="center bold section-title">ENDERECO DE ENTREGA</div>`);
+      let addrLine = stripAccents(addr.street);
       if (addr.number) addrLine += `, ${addr.number}`;
-      if (addr.neighborhood) addrLine += ` — ${addr.neighborhood}`;
-      lines.push(`<div>${addrLine}</div>`);
-      if (addr.cep) lines.push(`<div>CEP: ${addr.cep}</div>`);
-      if (addr.complement) lines.push(`<div>${addr.complement}</div>`);
-      if (addr.reference) lines.push(`<div>${addr.reference}</div>`);
-      lines.push(SPACER);
-      lines.push(SEP);
+      if (addr.neighborhood) addrLine += ` - ${stripAccents(addr.neighborhood)}`;
+      mainLines.push(`<div>${addrLine}</div>`);
+      if (addr.cep) mainLines.push(`<div>CEP: ${stripAccents(addr.cep)}</div>`);
+      if (addr.complement) mainLines.push(`<div>${stripAccents(addr.complement)}</div>`);
+      if (addr.reference) mainLines.push(`<div>${stripAccents(addr.reference)}</div>`);
+      mainLines.push(SPACER);
+      mainLines.push(SEP);
     }
 
     // Items
-    lines.push(SPACER);
-    lines.push(`<div class="center bold section-title">ITENS DO PEDIDO</div>`);
-    lines.push(SPACER);
+    mainLines.push(SEP);
+    mainLines.push(SPACER);
+    mainLines.push(`<div class="center bold section-title">ITENS DO PEDIDO</div>`);
+    mainLines.push(SPACER);
 
-    lines.push(`<table><thead><tr><th class="left">Qtd</th><th class="left">Item</th><th class="right">Valor</th></tr></thead><tbody>`);
+    mainLines.push(`<table><thead><tr><th class="left">Qtd</th><th class="left">Item</th><th class="right">Valor</th></tr></thead><tbody>`);
 
     sale.items.forEach(item => {
-      const label = getItemLabel(item);
+      const label = stripAccents(getItemLabel(item));
       const totalItem = item.calculatedPrice * item.quantity;
-      lines.push(`<tr><td>${item.quantity}</td><td>${label}</td><td class="right">${formatCurrency(totalItem)}</td></tr>`);
+      mainLines.push(`<tr><td>${item.quantity}</td><td>${label}</td><td class="right">${formatCurrency(totalItem)}</td></tr>`);
 
       if (item.secondFlavor) {
-        lines.push(`<tr><td></td><td class="sub">/ ${item.secondFlavor.name}</td><td></td></tr>`);
+        mainLines.push(`<tr><td></td><td class="sub">/ ${stripAccents(item.secondFlavor.name)}</td><td></td></tr>`);
       }
       if (item.border) {
-        const bPrice = item.borderFree ? 'Grátis' : formatCurrency(item.border.price);
-        lines.push(`<tr><td></td><td class="sub">Borda: ${item.border.name} (${bPrice})</td><td></td></tr>`);
+        const bPrice = item.borderFree ? 'Gratis' : formatCurrency(item.border.price);
+        mainLines.push(`<tr><td></td><td class="sub">Borda: ${stripAccents(item.border.name)} (${bPrice})</td><td></td></tr>`);
       }
       item.observations.forEach(obs => {
-        lines.push(`<tr><td></td><td class="sub obs">* ${obs}</td><td></td></tr>`);
+        mainLines.push(`<tr><td></td><td class="sub obs">* ${stripAccents(obs)}</td><td></td></tr>`);
       });
     });
 
-    lines.push(`</tbody></table>`);
-    lines.push(SPACER);
-    lines.push(SEP);
+    mainLines.push(`</tbody></table>`);
+    mainLines.push(SPACER);
+    mainLines.push(SEP);
 
     // Totals
-    lines.push(SPACER);
+    mainLines.push(SPACER);
+    mainLines.push(`<div class="center bold section-title">TOTAIS</div>`);
+    mainLines.push(SPACER);
     const subtotal = sale.total - (sale.deliveryFee || 0);
-    lines.push(`<div class="row"><span>Itens do pedido</span><span>${formatCurrency(subtotal)}</span></div>`);
+    mainLines.push(`<div class="row"><span>Itens do pedido</span><span>${formatCurrency(subtotal)}</span></div>`);
     if (sale.deliveryFee && sale.deliveryFee > 0) {
-      lines.push(`<div class="row"><span>Taxa de entrega</span><span>${formatCurrency(sale.deliveryFee)}</span></div>`);
+      mainLines.push(`<div class="row"><span>Taxa de entrega</span><span>${formatCurrency(sale.deliveryFee)}</span></div>`);
     }
-    lines.push(`<div class="row bold total-row"><span>TOTAL</span><span>${formatCurrency(sale.total)}</span></div>`);
-    lines.push(SPACER);
-    lines.push(SEP);
+    mainLines.push(`<div class="row bold total-row"><span>TOTAL</span><span>${formatCurrency(sale.total)}</span></div>`);
+    mainLines.push(SPACER);
+    mainLines.push(SEP);
 
     // Payment
-    lines.push(SPACER);
-    lines.push(`<div class="center bold section-title">FORMA DE PAGAMENTO</div>`);
+    mainLines.push(SPACER);
+    mainLines.push(`<div class="center bold section-title">FORMA DE PAGAMENTO</div>`);
+    mainLines.push(SPACER);
     sale.payments.forEach(p => {
       const label = PAYMENT_METHODS.find(m => m.method === p.method)?.label || p.method;
-      lines.push(`<div class="row"><span>${label}</span><span>${formatCurrency(p.amount)}</span></div>`);
+      mainLines.push(`<div class="row"><span>${label}</span><span>${formatCurrency(p.amount)}</span></div>`);
     });
     if (sale.change > 0) {
-      lines.push(`<div class="row"><span>Troco</span><span>${formatCurrency(sale.change)}</span></div>`);
+      mainLines.push(`<div class="row"><span>Troco</span><span>${formatCurrency(sale.change)}</span></div>`);
     }
-    lines.push(SPACER);
-    lines.push(SEP);
+    mainLines.push(SPACER);
+    mainLines.push(SEP);
 
     // Observations
     if (sale.observations && sale.observations.length > 0) {
-      lines.push(SPACER);
-      lines.push(`<div class="bold section-title">OBSERVAÇÕES</div>`);
-      sale.observations.forEach(o => lines.push(`<div>${o}</div>`));
-      lines.push(SPACER);
-      lines.push(SEP);
+      mainLines.push(SEP);
+      mainLines.push(SPACER);
+      mainLines.push(`<div class="center bold section-title">OBSERVACOES</div>`);
+      mainLines.push(SPACER);
+      sale.observations.forEach(o => mainLines.push(`<div>${stripAccents(o)}</div>`));
+      mainLines.push(SPACER);
+      mainLines.push(SEP);
     }
 
-    // Footer
-    lines.push(SPACER);
-    lines.push(`<div class="center bold footer">Obrigado pela preferência! Volte sempre.</div>`);
-    lines.push(SPACER);
-
-    return lines.join('\n');
+    // Return wrapped structure
+    return `
+      <div class="receipt-wrapper">
+        <div class="receipt-content">
+          ${mainLines.join('\n')}
+        </div>
+      </div>
+    `;
   };
 
   const receiptCSS = `
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
     body {
       font-family: Consolas, 'Courier New', monospace;
       font-size: 12px;
+      color: #000;
+      display: flex;
+      flex-direction: column;
+    }
+    .receipt-wrapper {
       width: 80mm;
       margin: 0 auto;
       padding: 10px;
-      color: #000;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .receipt-content {
+      flex: 1;
     }
     .center { text-align: center; }
     .bold { font-weight: bold; }
     .company-name { font-size: 16px; margin-bottom: 2px; }
     .section-title { font-size: 13px; margin-bottom: 4px; }
-    .sep { border-top: 1px solid #000; margin: 4px 0; }
-    .spacer { height: 10px; }
+    .sep { 
+      text-align: center;
+      color: #000;
+      font-size: 12px;
+      line-height: 1;
+      margin: 4px 0;
+      padding: 2px 0;
+      font-family: Consolas, 'Courier New', monospace;
+      font-weight: normal;
+      letter-spacing: 0;
+    }
+    .spacer { height: 4px; }
     .row { display: flex; justify-content: space-between; padding: 1px 0; }
     .total-row { font-size: 14px; margin-top: 4px; }
-    .footer { margin-top: 4px; font-size: 11px; }
     .sub { font-size: 11px; padding-left: 4px; color: #333; }
     .obs { font-style: italic; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -176,6 +245,31 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     .right { text-align: right; }
     th:first-child, td:first-child { width: 28px; }
     th:last-child, td:last-child { width: 70px; text-align: right; }
+    
+    @media print {
+      * { margin: 0; padding: 0; }
+      html, body { margin: 0; padding: 0; width: 100%; }
+      body { display: flex; flex-direction: column; }
+      .receipt-wrapper { 
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      .receipt-content { flex: 1; }
+      .sep { 
+        display: block !important;
+        visibility: visible !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        color: #000 !important;
+        line-height: 1 !important;
+        margin: 3px 0 !important;
+      }
+      .spacer { display: block !important; height: 2px !important; }
+    }
   `;
 
   const printReceipt = () => {
@@ -191,16 +285,39 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
   const previewHTML = buildReceiptHTML();
 
   const previewCSS = `
-    .receipt-preview { font-family: Consolas, 'Courier New', monospace; font-size: 12px; }
+    .receipt-preview { 
+      font-family: Consolas, 'Courier New', monospace; 
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+    .receipt-preview .receipt-wrapper {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+    .receipt-preview .receipt-content {
+      flex: 1;
+    }
     .receipt-preview .center { text-align: center; }
     .receipt-preview .bold { font-weight: bold; }
     .receipt-preview .company-name { font-size: 16px; margin-bottom: 2px; }
     .receipt-preview .section-title { font-size: 13px; margin-bottom: 4px; }
-    .receipt-preview .sep { border-top: 1px solid #000; margin: 4px 0; }
-    .receipt-preview .spacer { height: 10px; }
+    .receipt-preview .sep { 
+      text-align: center;
+      color: #000;
+      font-size: 12px;
+      line-height: 1;
+      margin: 4px 0;
+      padding: 2px 0;
+      font-family: Consolas, 'Courier New', monospace;
+      font-weight: normal;
+      letter-spacing: 0;
+    }
+    .receipt-preview .spacer { height: 4px; }
     .receipt-preview .row { display: flex; justify-content: space-between; padding: 1px 0; }
     .receipt-preview .total-row { font-size: 14px; margin-top: 4px; }
-    .receipt-preview .footer { margin-top: 4px; font-size: 11px; }
     .receipt-preview .sub { font-size: 11px; padding-left: 4px; color: #333; }
     .receipt-preview .obs { font-style: italic; }
     .receipt-preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
