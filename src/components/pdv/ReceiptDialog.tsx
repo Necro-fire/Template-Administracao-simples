@@ -162,10 +162,9 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       font-family: Consolas, 'Courier New', 'Lucida Console', monospace;
       font-size: 13px;
       line-height: 1.28;
-      width: 100%;
-      max-width: 55mm;
-      margin: 0 auto;
-      padding: 1mm 0.5mm;
+      width: 55mm;
+      margin: 0;
+      padding: 1mm 0;
       color: #000;
       background: #fff;
       text-align: center;
@@ -249,8 +248,9 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
 
   const printCSS = `
     ${receiptCSS}
-    @page { size: 55mm auto; margin: 0; }
-    body { margin: 0; padding: 0; }
+    @page { size: auto; margin: 0; }
+    html, body { margin: 0; padding: 0; width: 100%; }
+    .receipt { width: 100%; }
   `;
 
   const receiptHTML = buildReceiptHTML();
