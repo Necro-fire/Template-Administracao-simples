@@ -147,7 +147,6 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     footerBlocks.push(block([
       sep(),
       bold('Obrigado pela preferencia!'),
-      center('Volte sempre.'),
     ]));
 
     return [
@@ -163,12 +162,14 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       font-family: Consolas, 'Courier New', 'Lucida Console', monospace;
       font-size: 13px;
       line-height: 1.28;
-      width: 55mm;
+      width: 100%;
+      max-width: 55mm;
       margin: 0 auto;
-      padding: 1.5mm 2mm;
+      padding: 1mm 0.5mm;
       color: #000;
       background: #fff;
       text-align: center;
+      letter-spacing: 0.04em;
     }
     .receipt-section {
       width: 100%;
@@ -190,6 +191,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       font-family: inherit;
       font-size: inherit;
       line-height: inherit;
+      letter-spacing: inherit;
     }
     .receipt .line,
     .receipt .ct,
@@ -200,10 +202,11 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     .receipt .company {
       font-size: 16px;
       font-weight: 700;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.08em;
     }
     .receipt .b {
       font-weight: 700;
+      letter-spacing: 0.05em;
     }
     .receipt .line + .line,
     .receipt .ct + .ct,
