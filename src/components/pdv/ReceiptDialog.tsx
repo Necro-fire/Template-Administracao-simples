@@ -147,7 +147,6 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     footerBlocks.push(block([
       sep(),
       bold('Obrigado pela preferencia!'),
-      center('Volte sempre.'),
     ]));
 
     return [
