@@ -115,38 +115,59 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       mainLines.push(SEP);
     }
 
-    // Items
+    // Separate paid items from free/promotional items
+    const paidItems = sale.items.filter(item => item.calculatedPrice > 0);
+    const freeItems = sale.items.filter(item => item.calculatedPrice === 0);
+
+    const renderItemRows = (items: typeof sale.items, lines: string[]) => {
+      items.forEach((item, idx) => {
+        const label = stripAccents(getItemLabel(item));
+        const totalItem = item.calculatedPrice * item.quantity;
+        const priceLabel = item.calculatedPrice === 0 ? 'Gratis' : formatCurrency(totalItem);
+        lines.push(`<tr><td>${item.quantity}</td><td>${label}</td><td class="right">${priceLabel}</td></tr>`);
+
+        if (item.secondFlavor) {
+          lines.push(`<tr><td></td><td class="sub">/ ${stripAccents(item.secondFlavor.name)}</td><td></td></tr>`);
+        }
+        if (item.border) {
+          const bPrice = item.borderFree ? 'Gratis' : formatCurrency(item.border.price);
+          lines.push(`<tr><td></td><td class="sub">Borda: ${stripAccents(item.border.name)} (${bPrice})</td><td></td></tr>`);
+        }
+        if (item.freeSoda) {
+          lines.push(`<tr><td></td><td class="sub">+ ${stripAccents(item.freeSoda.name)} Gratis</td><td></td></tr>`);
+        }
+        item.observations.forEach(obs => {
+          lines.push(`<tr><td></td><td class="sub obs">* ${stripAccents(obs)}</td><td></td></tr>`);
+        });
+        // Separator between items (not after last)
+        if (idx < items.length - 1) {
+          lines.push(`<tr class="item-sep"><td colspan="3"><div class="item-separator"></div></td></tr>`);
+        }
+      });
+    };
+
+    // Paid items section
     mainLines.push(SEP);
     mainLines.push(SPACER);
     mainLines.push(`<div class="center bold section-title">ITENS DO PEDIDO</div>`);
     mainLines.push(SPACER);
-
     mainLines.push(`<table><thead><tr><th class="left">Qtd</th><th class="left">Item</th><th class="right">Valor</th></tr></thead><tbody>`);
-
-    sale.items.forEach((item, idx) => {
-      const label = stripAccents(getItemLabel(item));
-      const totalItem = item.calculatedPrice * item.quantity;
-      mainLines.push(`<tr><td>${item.quantity}</td><td>${label}</td><td class="right">${formatCurrency(totalItem)}</td></tr>`);
-
-      if (item.secondFlavor) {
-        mainLines.push(`<tr><td></td><td class="sub">/ ${stripAccents(item.secondFlavor.name)}</td><td></td></tr>`);
-      }
-      if (item.border) {
-        const bPrice = item.borderFree ? 'Gratis' : formatCurrency(item.border.price);
-        mainLines.push(`<tr><td></td><td class="sub">Borda: ${stripAccents(item.border.name)} (${bPrice})</td><td></td></tr>`);
-      }
-      item.observations.forEach(obs => {
-        mainLines.push(`<tr><td></td><td class="sub obs">* ${stripAccents(obs)}</td><td></td></tr>`);
-      });
-      // Separador entre itens (não após o último)
-      if (idx < sale.items.length - 1) {
-        mainLines.push(`<tr class="item-sep"><td colspan="3"><div class="item-separator"></div></td></tr>`);
-      }
-    });
-
+    renderItemRows(paidItems.length > 0 ? paidItems : sale.items, mainLines);
     mainLines.push(`</tbody></table>`);
     mainLines.push(SPACER);
     mainLines.push(SEP);
+
+    // Free/promotional items section (only if there are both paid and free items)
+    if (paidItems.length > 0 && freeItems.length > 0) {
+      mainLines.push(SPACER);
+      mainLines.push(`<div class="center bold section-title">ITENS GRATIS</div>`);
+      mainLines.push(SPACER);
+      mainLines.push(`<table><tbody>`);
+      renderItemRows(freeItems, mainLines);
+      mainLines.push(`</tbody></table>`);
+      mainLines.push(SPACER);
+      mainLines.push(SEP);
+    }
 
     // Totals
     mainLines.push(SPACER);
