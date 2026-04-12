@@ -123,7 +123,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
 
     mainLines.push(`<table><thead><tr><th class="left">Qtd</th><th class="left">Item</th><th class="right">Valor</th></tr></thead><tbody>`);
 
-    sale.items.forEach(item => {
+    sale.items.forEach((item, idx) => {
       const label = stripAccents(getItemLabel(item));
       const totalItem = item.calculatedPrice * item.quantity;
       mainLines.push(`<tr><td>${item.quantity}</td><td>${label}</td><td class="right">${formatCurrency(totalItem)}</td></tr>`);
@@ -138,6 +138,10 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       item.observations.forEach(obs => {
         mainLines.push(`<tr><td></td><td class="sub obs">* ${stripAccents(obs)}</td><td></td></tr>`);
       });
+      // Separador entre itens (não após o último)
+      if (idx < sale.items.length - 1) {
+        mainLines.push(`<tr class="item-sep"><td colspan="3"><div class="item-separator"></div></td></tr>`);
+      }
     });
 
     mainLines.push(`</tbody></table>`);
@@ -238,6 +242,8 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     .total-row { font-size: 14px; margin-top: 4px; }
     .sub { font-size: 11px; padding-left: 4px; color: #333; }
     .obs { font-style: italic; }
+    .item-sep td { padding: 0; }
+    .item-separator { border: none; border-top: 1px dashed #666; margin: 3px 0; width: 100%; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th, td { padding: 3px 0; vertical-align: top; }
     th { font-weight: bold; }
@@ -320,6 +326,8 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     .receipt-preview .total-row { font-size: 14px; margin-top: 4px; }
     .receipt-preview .sub { font-size: 11px; padding-left: 4px; color: #333; }
     .receipt-preview .obs { font-style: italic; }
+    .receipt-preview .item-sep td { padding: 0; }
+    .receipt-preview .item-separator { border: none; border-top: 1px dashed #666; margin: 3px 0; width: 100%; }
     .receipt-preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
     .receipt-preview th, .receipt-preview td { padding: 3px 0; vertical-align: top; }
     .receipt-preview th { font-weight: bold; }
