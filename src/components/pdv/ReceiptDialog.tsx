@@ -242,6 +242,8 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     .total-row { font-size: 14px; margin-top: 4px; }
     .sub { font-size: 11px; padding-left: 4px; color: #333; }
     .obs { font-style: italic; }
+    .item-sep td { padding: 0; }
+    .item-separator { border: none; border-top: 1px dashed #666; margin: 3px 0; width: 100%; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th, td { padding: 3px 0; vertical-align: top; }
     th { font-weight: bold; }
