@@ -123,7 +123,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
 
     mainLines.push(`<table><thead><tr><th class="left">Qtd</th><th class="left">Item</th><th class="right">Valor</th></tr></thead><tbody>`);
 
-    sale.items.forEach(item => {
+    sale.items.forEach((item, idx) => {
       const label = stripAccents(getItemLabel(item));
       const totalItem = item.calculatedPrice * item.quantity;
       mainLines.push(`<tr><td>${item.quantity}</td><td>${label}</td><td class="right">${formatCurrency(totalItem)}</td></tr>`);
@@ -138,6 +138,10 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       item.observations.forEach(obs => {
         mainLines.push(`<tr><td></td><td class="sub obs">* ${stripAccents(obs)}</td><td></td></tr>`);
       });
+      // Separador entre itens (não após o último)
+      if (idx < sale.items.length - 1) {
+        mainLines.push(`<tr class="item-sep"><td colspan="3"><div class="item-separator"></div></td></tr>`);
+      }
     });
 
     mainLines.push(`</tbody></table>`);
