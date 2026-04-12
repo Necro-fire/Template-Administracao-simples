@@ -139,10 +139,8 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
         item.observations.forEach(obs => {
           lines.push(`<tr><td></td><td class="sub obs">* ${stripAccents(obs)}</td><td></td></tr>`);
         });
-        // Separator between items (not after last)
-        if (idx < items.length - 1) {
-          lines.push(`<tr class="item-sep"><td colspan="3"><div class="item-separator"></div></td></tr>`);
-        }
+        // Separator after every item
+        lines.push(`<tr class="item-sep"><td colspan="3"><div class="item-separator"></div></td></tr>`);
       });
     };
 
