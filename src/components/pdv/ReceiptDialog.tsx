@@ -140,7 +140,7 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
           lines.push(`<tr><td></td><td class="sub obs">* ${stripAccents(obs)}</td><td></td></tr>`);
         });
         // Separator after every item
-        lines.push(`<tr class="item-sep"><td colspan="3"><div class="item-separator"></div></td></tr>`);
+        lines.push(`<tr class="item-sep"><td colspan="3"><div class="item-separator">--------------------------------------------------</div></td></tr>`);
       });
     };
 
@@ -271,7 +271,17 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     .sub { font-size: 11px; padding-left: 4px; color: #333; }
     .obs { font-style: italic; }
     .item-sep td { padding: 0; }
-    .item-separator { border: none; border-top: 1px dashed #666; margin: 3px 0; width: 100%; }
+    .item-separator {
+      display: block;
+      width: 100%;
+      margin: 3px 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-align: center;
+      letter-spacing: 0;
+      line-height: 1;
+      color: #000;
+    }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th, td { padding: 3px 0; vertical-align: top; }
     th { font-weight: bold; }
@@ -355,7 +365,17 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     .receipt-preview .sub { font-size: 11px; padding-left: 4px; color: #333; }
     .receipt-preview .obs { font-style: italic; }
     .receipt-preview .item-sep td { padding: 0; }
-    .receipt-preview .item-separator { border: none; border-top: 1px dashed #666; margin: 3px 0; width: 100%; }
+    .receipt-preview .item-separator {
+      display: block;
+      width: 100%;
+      margin: 3px 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-align: center;
+      letter-spacing: 0;
+      line-height: 1;
+      color: #000;
+    }
     .receipt-preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
     .receipt-preview th, .receipt-preview td { padding: 3px 0; vertical-align: top; }
     .receipt-preview th { font-weight: bold; }
