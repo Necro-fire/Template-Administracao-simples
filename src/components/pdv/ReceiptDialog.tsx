@@ -326,6 +326,8 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
     .receipt-preview .total-row { font-size: 14px; margin-top: 4px; }
     .receipt-preview .sub { font-size: 11px; padding-left: 4px; color: #333; }
     .receipt-preview .obs { font-style: italic; }
+    .receipt-preview .item-sep td { padding: 0; }
+    .receipt-preview .item-separator { border: none; border-top: 1px dashed #666; margin: 3px 0; width: 100%; }
     .receipt-preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
     .receipt-preview th, .receipt-preview td { padding: 3px 0; vertical-align: top; }
     .receipt-preview th { font-weight: bold; }
