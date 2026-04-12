@@ -207,11 +207,20 @@ export function ReceiptDialog({ sale, open, onOpenChange }: ReceiptDialogProps) 
       mainLines.push(SEP);
     }
 
+    // Sanitize: remove consecutive duplicate separators
+    const sanitized: string[] = [];
+    for (let i = 0; i < mainLines.length; i++) {
+      const isSep = mainLines[i] === SEP;
+      const prevIsSep = sanitized.length > 0 && sanitized[sanitized.length - 1] === SEP;
+      if (isSep && prevIsSep) continue; // skip duplicate
+      sanitized.push(mainLines[i]);
+    }
+
     // Return wrapped structure
     return `
       <div class="receipt-wrapper">
         <div class="receipt-content">
-          ${mainLines.join('\n')}
+          ${sanitized.join('\n')}
         </div>
       </div>
     `;
