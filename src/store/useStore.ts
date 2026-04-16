@@ -48,7 +48,7 @@ interface AppState {
   cashRegister: CashRegister | null;
   cashHistory: CashRegister[];
   auditLogs: AuditLog[];
-  nextSaleCode: number;
+  // nextSaleCode removed - now generated atomically in the database
   loading: boolean;
 
   // Local-only state
@@ -106,7 +106,7 @@ export const useStore = create<AppState>()((set, get) => ({
   cashRegister: null,
   cashHistory: [],
   auditLogs: [],
-  nextSaleCode: 1,
+  // nextSaleCode removed
   loading: true,
   cart: [],
 
