@@ -252,7 +252,7 @@ export const useStore = create<AppState>()((set, get) => ({
       sales: mappedSales,
       cashRegister,
       cashHistory,
-      nextSaleCode: settingsData ? Number(settingsData.value) || 1 : 1,
+      // nextSaleCode removed - generated in database
       auditLogs: (auditData || []).map(a => ({
         id: a.id, action: a.action, details: a.details || '', user: a.user_name || 'system', date: a.created_at!,
       })),
