@@ -342,8 +342,12 @@ export const useStore = create<AppState>()((set, get) => ({
     const state = get();
     const subtotal = state.cart.reduce((sum, i) => sum + i.calculatedPrice * i.quantity, 0);
     const total = subtotal + (deliveryFee || 0);
-    const code = String(state.nextSaleCode).padStart(6, '0');
     const registerId = state.cashRegister?.id || null;
+
+    // Generate code atomically in the backend
+    const { data: codeData, error: codeError } = await supabase.rpc('generate_sale_code');
+    if (codeError || !codeData) throw new Error('Falha ao gerar código da venda');
+    const code = codeData as string;
 
     const { data: saleRow, error } = await supabase.from('sales').insert({
       code, register_id: registerId, total, change_amount: change,
@@ -369,9 +373,6 @@ export const useStore = create<AppState>()((set, get) => ({
     }));
     await supabase.from('sale_items').insert(itemsToInsert);
 
-    const newCode = state.nextSaleCode + 1;
-    await supabase.from('app_settings').update({ value: newCode as any }).eq('key', 'next_sale_code');
-
     const sale: Sale = {
       id: saleRow.id, code, items: [...state.cart], payments, total, change,
       date: saleRow.created_at, customerName, customerContact, observations: observations || [],
@@ -380,7 +381,6 @@ export const useStore = create<AppState>()((set, get) => ({
 
     set(s => ({
       sales: [sale, ...s.sales],
-      nextSaleCode: newCode,
       cart: [],
       cashRegister: s.cashRegister ? { ...s.cashRegister, sales: [...s.cashRegister.sales, sale] } : s.cashRegister,
     }));
