@@ -409,6 +409,8 @@ export const useStore = create<AppState>()((set, get) => ({
       initial_amount: initialAmount,
     }).select().single();
     if (error || !data) return;
+    // Reset the sale code counter so codes restart from 000001 for this register
+    await supabase.rpc('reset_sale_code_counter');
     set({
       cashRegister: {
         id: data.id, openedAt: data.opened_at!, initialAmount,
