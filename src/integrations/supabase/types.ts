@@ -398,6 +398,7 @@ export type Database = {
     }
     Functions: {
       generate_sale_code: { Args: never; Returns: string }
+      reset_sale_code_counter: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
