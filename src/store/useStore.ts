@@ -156,13 +156,20 @@ export const useStore = create<AppState>()((set, get) => ({
         ? await supabase.from('sale_items').select('*').in('sale_id', regSaleIds)
         : { data: [] };
 
+      const openItemsBySaleId = new Map<string, any[]>();
+      (saleItemsData || []).forEach(si => {
+        const arr = openItemsBySaleId.get(si.sale_id) || [];
+        arr.push(si);
+        openItemsBySaleId.set(si.sale_id, arr);
+      });
+
       const mapSale = (s: any): Sale => ({
         id: s.id, code: s.code, total: Number(s.total), change: Number(s.change_amount) || 0,
         date: s.created_at, customerName: s.customer_name || '', customerContact: s.customer_contact || '',
         observations: s.observations || [], cancelled: s.cancelled || false, cancelledAt: s.cancelled_at,
         deliveryMode: s.delivery_mode, deliveryAddress: s.delivery_address as any,
         deliveryFee: Number(s.delivery_fee) || 0, payments: (s.payments || []) as unknown as PaymentSplit[],
-        items: (saleItemsData || []).filter(si => si.sale_id === s.id).map(si => ({
+        items: (openItemsBySaleId.get(s.id) || []).map(si => ({
           id: si.id, product: si.product_data as any, quantity: si.quantity || 1,
           observations: si.observations || [], pizzaSize: si.pizza_size as PizzaSize | undefined,
           secondFlavor: si.second_flavor as any, calculatedPrice: Number(si.calculated_price),
@@ -179,53 +186,76 @@ export const useStore = create<AppState>()((set, get) => ({
       };
     }
 
-    // Build cash history from closed registers
+
+    // Build cash history from closed registers — BULK fetch (no N+1)
     const cashHistory: CashRegister[] = [];
     if (closedRegistersData && closedRegistersData.length > 0) {
+      const closedIds = closedRegistersData.map(r => r.id);
+
+      const [{ data: allMovements }, { data: allRegSales }] = await Promise.all([
+        supabase.from('cash_movements').select('*').in('register_id', closedIds).order('created_at'),
+        supabase.from('sales').select('*').in('register_id', closedIds).order('created_at'),
+      ]);
+
+      const allRegSaleIds = (allRegSales || []).map(s => s.id);
+      const { data: allRegSaleItems } = allRegSaleIds.length > 0
+        ? await supabase.from('sale_items').select('*').in('sale_id', allRegSaleIds)
+        : { data: [] };
+
+      // Index items by sale_id for O(1) lookup instead of repeated filter()
+      const itemsBySaleId = new Map<string, any[]>();
+      (allRegSaleItems || []).forEach(si => {
+        const arr = itemsBySaleId.get(si.sale_id) || [];
+        arr.push(si);
+        itemsBySaleId.set(si.sale_id, arr);
+      });
+
+      const mapMovement = (m: any): CashMovement => ({
+        id: m.id, type: m.type, amount: Number(m.amount), description: m.description || '',
+        paymentMethod: m.payment_method, date: m.created_at, origin: m.origin as 'manual' | 'pdv',
+      });
+
       for (const reg of closedRegistersData) {
-        const [{ data: entries }, { data: exits }, { data: regSales }] = await Promise.all([
-          supabase.from('cash_movements').select('*').eq('register_id', reg.id).in('type', ['entry', 'reforco']).order('created_at'),
-          supabase.from('cash_movements').select('*').eq('register_id', reg.id).in('type', ['exit', 'sangria']).order('created_at'),
-          supabase.from('sales').select('*').eq('register_id', reg.id).order('created_at'),
-        ]);
-
-        const mapMovement = (m: any): CashMovement => ({
-          id: m.id, type: m.type, amount: Number(m.amount), description: m.description || '',
-          paymentMethod: m.payment_method, date: m.created_at, origin: m.origin as 'manual' | 'pdv',
-        });
-
-        const regSaleIds = (regSales || []).map(s => s.id);
-        const { data: saleItemsData } = regSaleIds.length > 0
-          ? await supabase.from('sale_items').select('*').in('sale_id', regSaleIds)
-          : { data: [] };
+        const regMovements = (allMovements || []).filter(m => m.register_id === reg.id);
+        const entries = regMovements.filter(m => m.type === 'entry' || m.type === 'reforco');
+        const exits = regMovements.filter(m => m.type === 'exit' || m.type === 'sangria');
+        const regSales = (allRegSales || []).filter(s => s.register_id === reg.id);
 
         cashHistory.push({
           id: reg.id, openedAt: reg.opened_at!, closedAt: reg.closed_at || undefined,
           initialAmount: Number(reg.initial_amount) || 0, informedAmount: reg.informed_amount ? Number(reg.informed_amount) : undefined,
-          sales: (regSales || []).map(s => ({
+          sales: regSales.map(s => ({
             id: s.id, code: s.code, total: Number(s.total), change: Number(s.change_amount) || 0,
             date: s.created_at, customerName: s.customer_name || '', customerContact: s.customer_contact || '',
             observations: s.observations || [], cancelled: s.cancelled || false, cancelledAt: s.cancelled_at,
             deliveryMode: s.delivery_mode as any, deliveryAddress: s.delivery_address as any,
             deliveryFee: Number(s.delivery_fee) || 0, payments: (s.payments || []) as unknown as PaymentSplit[],
-            items: (saleItemsData || []).filter(si => si.sale_id === s.id).map(si => ({
+            items: (itemsBySaleId.get(s.id) || []).map(si => ({
               id: si.id, product: si.product_data as any, quantity: si.quantity || 1,
               observations: si.observations || [], pizzaSize: si.pizza_size as PizzaSize | undefined,
               secondFlavor: si.second_flavor as any, calculatedPrice: Number(si.calculated_price),
               border: si.border_data as any, borderFree: si.border_free || false, freeSoda: si.free_soda as any,
             })),
           })),
-          entries: (entries || []).map(mapMovement),
-          exits: (exits || []).map(mapMovement),
+          entries: entries.map(mapMovement),
+          exits: exits.map(mapMovement),
         });
       }
     }
 
-    // Map sales (all)
+
+    // Map sales (all) — index items by sale_id for O(1) lookup
     const allSaleIds = (salesData || []).map(s => s.id);
     const { data: allSaleItems } = allSaleIds.length > 0
       ? await supabase.from('sale_items').select('*').in('sale_id', allSaleIds)
       : { data: [] };
+
+    const allItemsBySaleId = new Map<string, any[]>();
+    (allSaleItems || []).forEach(si => {
+      const arr = allItemsBySaleId.get(si.sale_id) || [];
+      arr.push(si);
+      allItemsBySaleId.set(si.sale_id, arr);
+    });
 
     const mappedSales: Sale[] = (salesData || []).map(s => ({
       id: s.id, code: s.code, total: Number(s.total), change: Number(s.change_amount) || 0,
@@ -233,13 +263,14 @@ export const useStore = create<AppState>()((set, get) => ({
       observations: s.observations || [], cancelled: s.cancelled || false, cancelledAt: s.cancelled_at,
       deliveryMode: s.delivery_mode as any, deliveryAddress: s.delivery_address as any,
       deliveryFee: Number(s.delivery_fee) || 0, payments: (s.payments || []) as unknown as PaymentSplit[],
-      items: (allSaleItems || []).filter(si => si.sale_id === s.id).map(si => ({
+      items: (allItemsBySaleId.get(s.id) || []).map(si => ({
         id: si.id, product: si.product_data as any, quantity: si.quantity || 1,
         observations: si.observations || [], pizzaSize: si.pizza_size as PizzaSize | undefined,
         secondFlavor: si.second_flavor as any, calculatedPrice: Number(si.calculated_price),
         border: si.border_data as any, borderFree: si.border_free || false, freeSoda: si.free_soda as any,
       })),
     }));
+
 
     set({
       products: (productsData || []).map(mapProduct),
