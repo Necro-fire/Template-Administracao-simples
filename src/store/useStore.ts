@@ -156,13 +156,20 @@ export const useStore = create<AppState>()((set, get) => ({
         ? await supabase.from('sale_items').select('*').in('sale_id', regSaleIds)
         : { data: [] };
 
+      const openItemsBySaleId = new Map<string, any[]>();
+      (saleItemsData || []).forEach(si => {
+        const arr = openItemsBySaleId.get(si.sale_id) || [];
+        arr.push(si);
+        openItemsBySaleId.set(si.sale_id, arr);
+      });
+
       const mapSale = (s: any): Sale => ({
         id: s.id, code: s.code, total: Number(s.total), change: Number(s.change_amount) || 0,
         date: s.created_at, customerName: s.customer_name || '', customerContact: s.customer_contact || '',
         observations: s.observations || [], cancelled: s.cancelled || false, cancelledAt: s.cancelled_at,
         deliveryMode: s.delivery_mode, deliveryAddress: s.delivery_address as any,
         deliveryFee: Number(s.delivery_fee) || 0, payments: (s.payments || []) as unknown as PaymentSplit[],
-        items: (saleItemsData || []).filter(si => si.sale_id === s.id).map(si => ({
+        items: (openItemsBySaleId.get(s.id) || []).map(si => ({
           id: si.id, product: si.product_data as any, quantity: si.quantity || 1,
           observations: si.observations || [], pizzaSize: si.pizza_size as PizzaSize | undefined,
           secondFlavor: si.second_flavor as any, calculatedPrice: Number(si.calculated_price),
@@ -178,6 +185,7 @@ export const useStore = create<AppState>()((set, get) => ({
         exits: (exits || []).map(mapMovement),
       };
     }
+
 
     // Build cash history from closed registers — BULK fetch (no N+1)
     const cashHistory: CashRegister[] = [];
