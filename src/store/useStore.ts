@@ -236,11 +236,18 @@ export const useStore = create<AppState>()((set, get) => ({
     }
 
 
-    // Map sales (all)
+    // Map sales (all) — index items by sale_id for O(1) lookup
     const allSaleIds = (salesData || []).map(s => s.id);
     const { data: allSaleItems } = allSaleIds.length > 0
       ? await supabase.from('sale_items').select('*').in('sale_id', allSaleIds)
       : { data: [] };
+
+    const allItemsBySaleId = new Map<string, any[]>();
+    (allSaleItems || []).forEach(si => {
+      const arr = allItemsBySaleId.get(si.sale_id) || [];
+      arr.push(si);
+      allItemsBySaleId.set(si.sale_id, arr);
+    });
 
     const mappedSales: Sale[] = (salesData || []).map(s => ({
       id: s.id, code: s.code, total: Number(s.total), change: Number(s.change_amount) || 0,
@@ -248,13 +255,14 @@ export const useStore = create<AppState>()((set, get) => ({
       observations: s.observations || [], cancelled: s.cancelled || false, cancelledAt: s.cancelled_at,
       deliveryMode: s.delivery_mode as any, deliveryAddress: s.delivery_address as any,
       deliveryFee: Number(s.delivery_fee) || 0, payments: (s.payments || []) as unknown as PaymentSplit[],
-      items: (allSaleItems || []).filter(si => si.sale_id === s.id).map(si => ({
+      items: (allItemsBySaleId.get(s.id) || []).map(si => ({
         id: si.id, product: si.product_data as any, quantity: si.quantity || 1,
         observations: si.observations || [], pizzaSize: si.pizza_size as PizzaSize | undefined,
         secondFlavor: si.second_flavor as any, calculatedPrice: Number(si.calculated_price),
         border: si.border_data as any, borderFree: si.border_free || false, freeSoda: si.free_soda as any,
       })),
     }));
+
 
     set({
       products: (productsData || []).map(mapProduct),
