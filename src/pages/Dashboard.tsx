@@ -76,13 +76,6 @@ export default function Dashboard() {
         }
         return;
       }
-      const itemsBySaleId = new Map<string, any[]>();
-      (saleItemsRows || []).forEach(item => {
-        const arr = itemsBySaleId.get(item.sale_id) || [];
-        arr.push(item);
-        itemsBySaleId.set(item.sale_id, arr);
-      });
-
       const itemsBySaleId = new Map<string, typeof saleItemsRows>();
       (saleItemsRows || []).forEach((item) => {
         const list = itemsBySaleId.get(item.sale_id) || [];
