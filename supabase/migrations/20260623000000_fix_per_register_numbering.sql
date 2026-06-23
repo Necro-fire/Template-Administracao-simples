@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS public.generate_sale_code();
 -- 1. Add last_sale_code to cash_registers to maintain per-register sequence
 ALTER TABLE public.cash_registers ADD COLUMN IF NOT EXISTS last_sale_code INTEGER DEFAULT 0;
 
