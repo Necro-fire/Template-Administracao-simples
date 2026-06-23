@@ -97,6 +97,7 @@ interface AppState {
   // Init
   fetchAll: () => Promise<void>;
   fetchSales: (startIso?: string, endIso?: string) => Promise<void>;
+  fetchCashHistory: (startIso?: string, endIso?: string) => Promise<void>;
 
   // Products
   addProduct: (p: Product) => Promise<void>;
@@ -162,7 +163,6 @@ export const useStore = create<AppState>()((set, get) => ({
       { data: fbrData },
       { data: fsrData },
       { data: registersData },
-      { data: closedRegistersData },
     ] = await Promise.all([
       supabase.from('products').select(PRODUCT_COLUMNS).order('name'),
       supabase.from('borders').select(BORDER_COLUMNS).order('name'),
@@ -170,7 +170,6 @@ export const useStore = create<AppState>()((set, get) => ({
       supabase.from('free_border_rules').select('*'),
       supabase.from('free_soda_rules').select('*'),
       supabase.from('cash_registers').select(REGISTER_COLUMNS).is('closed_at', null).order('opened_at', { ascending: false }).limit(1),
-      supabase.from('cash_registers').select(REGISTER_COLUMNS).not('closed_at', 'is', null).order('closed_at', { ascending: false }).limit(50),
     ]);
 
     // Get open register with its movements and sales
@@ -200,37 +199,6 @@ export const useStore = create<AppState>()((set, get) => ({
       };
     }
 
-
-    // Build cash history from closed registers — BULK fetch (no N+1)
-    const cashHistory: CashRegister[] = [];
-    if (closedRegistersData && closedRegistersData.length > 0) {
-      const closedIds = closedRegistersData.map(r => r.id);
-
-      const [{ data: allMovements }, { data: allRegSales }] = await Promise.all([
-        supabase.from('cash_movements').select(MOVEMENT_COLUMNS).in('register_id', closedIds).order('created_at'),
-        supabase.from('sales').select(SALE_COLUMNS).in('register_id', closedIds).order('created_at'),
-      ]);
-
-      const movementsByRegisterId = indexBy(allMovements || [], 'register_id');
-      const salesByRegisterId = indexBy(allRegSales || [], 'register_id');
-      const emptyItemsBySaleId = new Map<string, any[]>();
-
-      for (const reg of closedRegistersData) {
-        const regMovements = movementsByRegisterId.get(reg.id) || [];
-        const entries = regMovements.filter(m => m.type === 'entry' || m.type === 'reforco');
-        const exits = regMovements.filter(m => m.type === 'exit' || m.type === 'sangria');
-        const regSales = salesByRegisterId.get(reg.id) || [];
-
-        cashHistory.push({
-          id: reg.id, openedAt: reg.opened_at!, closedAt: reg.closed_at || undefined,
-          initialAmount: Number(reg.initial_amount) || 0, informedAmount: reg.informed_amount ? Number(reg.informed_amount) : undefined,
-          sales: regSales.map(s => mapSaleRow(s, emptyItemsBySaleId)),
-          entries: entries.map(mapMovement),
-          exits: exits.map(mapMovement),
-        });
-      }
-    }
-
     set({
       products: (productsData || []).map(mapProduct),
       borders: (bordersData || []).map(mapBorder),
@@ -238,7 +206,6 @@ export const useStore = create<AppState>()((set, get) => ({
       freeBorderRules: (fbrData || []).map(r => ({ size: r.size as PizzaSize, enabled: r.enabled ?? false })),
       freeSodaRules: (fsrData || []).map(r => ({ size: r.size as PizzaSize, enabled: r.enabled ?? false })),
       cashRegister,
-      cashHistory,
       loading: false,
     });
   },
@@ -259,6 +226,50 @@ export const useStore = create<AppState>()((set, get) => ({
 
     const itemsBySaleId = indexBy(saleItemsData || [], 'sale_id');
     set({ sales: (salesData || []).map(s => mapSaleRow(s, itemsBySaleId)) });
+  },
+
+  fetchCashHistory: async (startIso, endIso) => {
+    let registersQuery = supabase
+      .from('cash_registers')
+      .select(REGISTER_COLUMNS)
+      .not('closed_at', 'is', null)
+      .order('closed_at', { ascending: false })
+      .limit(50);
+
+    if (startIso) registersQuery = registersQuery.gte('opened_at', startIso);
+    if (endIso) registersQuery = registersQuery.lte('opened_at', endIso);
+
+    const { data: closedRegistersData } = await registersQuery;
+    if (!closedRegistersData || closedRegistersData.length === 0) {
+      set({ cashHistory: [] });
+      return;
+    }
+
+    const closedIds = closedRegistersData.map(r => r.id);
+    const [{ data: allMovements }, { data: allRegSales }] = await Promise.all([
+      supabase.from('cash_movements').select(MOVEMENT_COLUMNS).in('register_id', closedIds).order('created_at'),
+      supabase.from('sales').select(SALE_COLUMNS).in('register_id', closedIds).order('created_at'),
+    ]);
+
+    const movementsByRegisterId = indexBy(allMovements || [], 'register_id');
+    const salesByRegisterId = indexBy(allRegSales || [], 'register_id');
+    const emptyItemsBySaleId = new Map<string, any[]>();
+
+    set({
+      cashHistory: closedRegistersData.map(reg => {
+        const regMovements = movementsByRegisterId.get(reg.id) || [];
+        return {
+          id: reg.id,
+          openedAt: reg.opened_at!,
+          closedAt: reg.closed_at || undefined,
+          initialAmount: Number(reg.initial_amount) || 0,
+          informedAmount: reg.informed_amount ? Number(reg.informed_amount) : undefined,
+          sales: (salesByRegisterId.get(reg.id) || []).map(s => mapSaleRow(s, emptyItemsBySaleId)),
+          entries: regMovements.filter(m => m.type === 'entry' || m.type === 'reforco').map(mapMovement),
+          exits: regMovements.filter(m => m.type === 'exit' || m.type === 'sangria').map(mapMovement),
+        };
+      }),
+    });
   },
 
   // ===== PRODUCTS =====
@@ -356,7 +367,7 @@ export const useStore = create<AppState>()((set, get) => ({
       observations: observations || [], delivery_mode: deliveryMode || 'retirada',
       delivery_address: deliveryAddress as any, delivery_fee: deliveryFee || 0,
       payments: payments as any,
-    }).select().single();
+    }).select(SALE_COLUMNS).single();
 
     if (error || !saleRow) throw new Error('Failed to save sale');
 
@@ -410,7 +421,7 @@ export const useStore = create<AppState>()((set, get) => ({
   openRegister: async (initialAmount) => {
     const { data, error } = await supabase.from('cash_registers').insert({
       initial_amount: initialAmount,
-    }).select().single();
+    }).select(REGISTER_COLUMNS).single();
     if (error || !data) return;
     // Reset the sale code counter so codes restart from 000001 for this register
     set({
@@ -438,7 +449,7 @@ export const useStore = create<AppState>()((set, get) => ({
     const { data, error } = await supabase.from('cash_movements').insert({
       register_id: reg.id, type: m.type, amount: m.amount,
       description: m.description, payment_method: m.paymentMethod || null, origin: m.origin || 'manual',
-    }).select().single();
+    }).select(MOVEMENT_COLUMNS).single();
     if (error || !data) return;
     const movement: CashMovement = { id: data.id, type: m.type, amount: m.amount, description: m.description, paymentMethod: m.paymentMethod, date: data.created_at!, origin: m.origin as any };
     const isEntry = m.type === 'entry' || m.type === 'reforco';
@@ -506,25 +517,24 @@ export const useStore = create<AppState>()((set, get) => ({
 
   // ===== RULES =====
   setFreeBorderRules: async (rules) => {
-    for (const r of rules) {
-      await supabase.from('free_border_rules').upsert({ size: r.size, enabled: r.enabled }, { onConflict: 'size' });
-    }
+    await Promise.all(rules.map(r =>
+      supabase.from('free_border_rules').upsert({ size: r.size, enabled: r.enabled }, { onConflict: 'size' })
+    ));
     set({ freeBorderRules: rules });
   },
   setFreeSodaRules: async (rules) => {
-    for (const r of rules) {
-      await supabase.from('free_soda_rules').upsert({ size: r.size, enabled: r.enabled }, { onConflict: 'size' });
-    }
+    await Promise.all(rules.map(r =>
+      supabase.from('free_soda_rules').upsert({ size: r.size, enabled: r.enabled }, { onConflict: 'size' })
+    ));
     set({ freeSodaRules: rules });
   },
 
   // ===== AUDIT =====
   addAuditLog: async (action, details) => {
-    const { data } = await supabase.from('audit_logs').insert({ action, details }).select().single();
-    if (data) {
-      set(s => ({
-        auditLogs: [{ id: data.id, action, details, user: 'system', date: data.created_at! }, ...s.auditLogs].slice(0, 500),
-      }));
-    }
+    const date = new Date().toISOString();
+    await supabase.from('audit_logs').insert({ action, details, created_at: date });
+    set(s => ({
+      auditLogs: [{ id: crypto.randomUUID(), action, details, user: 'system', date }, ...s.auditLogs].slice(0, 100),
+    }));
   },
 }));
