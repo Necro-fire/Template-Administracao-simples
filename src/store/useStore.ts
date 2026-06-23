@@ -374,7 +374,7 @@ export const useStore = create<AppState>()((set, get) => ({
     const registerId = state.cashRegister?.id || null;
 
     // Generate code atomically in the backend
-    const { data: codeData, error: codeError } = await supabase.rpc('generate_sale_code');
+    const { data: codeData, error: codeError } = await supabase.rpc('generate_sale_code', { p_register_id: registerId });
     if (codeError || !codeData) throw new Error('Falha ao gerar código da venda');
     const code = codeData as string;
 
@@ -441,7 +441,6 @@ export const useStore = create<AppState>()((set, get) => ({
     }).select().single();
     if (error || !data) return;
     // Reset the sale code counter so codes restart from 000001 for this register
-    await supabase.rpc('reset_sale_code_counter');
     set({
       cashRegister: {
         id: data.id, openedAt: data.opened_at!, initialAmount,

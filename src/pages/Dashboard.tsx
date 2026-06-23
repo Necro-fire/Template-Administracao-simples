@@ -73,6 +73,12 @@ export default function Dashboard() {
         }
         return;
       }
+      const itemsBySaleId = new Map<string, any[]>();
+      (saleItemsRows || []).forEach(item => {
+        const arr = itemsBySaleId.get(item.sale_id) || [];
+        arr.push(item);
+        itemsBySaleId.set(item.sale_id, arr);
+      });
 
       const mappedSales: Sale[] = (salesRows || []).map((sale) => ({
         id: sale.id,
